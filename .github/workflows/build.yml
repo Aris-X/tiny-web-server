@@ -37,7 +37,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release
-          Copy-Item "${{ matrix.out_dir }}\WindowsProject1.exe" "release\WindowsProject1-${{ matrix.arch }}.exe"
+          Copy-Item "${{ matrix.out_dir }}\WindowsProject1.exe" "release\tiny-web-server-${{ matrix.arch }}.exe"
 
       - uses: actions/upload-artifact@v5
         with:
@@ -59,7 +59,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/tiny-web-server-x64/WindowsProject1-x64.exe
-            artifacts/tiny-web-server-Win32/WindowsProject1-Win32.exe
+            artifacts/tiny-web-server-x64/tiny-web-server-x64.exe
+            artifacts/tiny-web-server-Win32/tiny-web-server-Win32.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

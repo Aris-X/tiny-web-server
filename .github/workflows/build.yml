@@ -22,15 +22,14 @@ jobs:
       - uses: microsoft/setup-msbuild@v2
 
       - name: Setup vcpkg
+        shell: pwsh
         run: |
           git clone https://github.com/Microsoft/vcpkg.git
           .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
-
-      - name: Install dependencies
-        run: .\vcpkg\vcpkg install --triplet ${{ matrix.triplet }}
+          echo "VCPKG_ROOT=$env:GITHUB_WORKSPACE\vcpkg" >> $env:GITHUB_ENV
 
       - name: Build
-        run: msbuild WindowsProject1.slnx /p:Configuration=Release /p:Platform=${{ matrix.arch }}
+        run: msbuild WindowsProject1.vcxproj /p:Configuration=Release /p:Platform=${{ matrix.arch }}
 
       - name: Package
         run: |

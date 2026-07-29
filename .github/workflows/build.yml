@@ -14,7 +14,7 @@ jobs:
           - arch: x64
             out_dir: x64\Release
           - arch: Win32
-            out_dir: Win32\Release
+            out_dir: Release
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

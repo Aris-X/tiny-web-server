@@ -1,6 +1,11 @@
 # 本地 Web 服务器
 
 [![Build](https://github.com/Aris-X/tiny-web-server/actions/workflows/build.yml/badge.svg)](https://github.com/Aris-X/tiny-web-server/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/Aris-X/tiny-web-server)](https://github.com/Aris-X/tiny-web-server/releases)
+[![Downloads](https://img.shields.io/github/downloads/Aris-X/tiny-web-server/total)](https://github.com/Aris-X/tiny-web-server/releases)
+[![License](https://img.shields.io/github/license/Aris-X/tiny-web-server)](LICENSE)
+![C++](https://img.shields.io/badge/language-C++-blue)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
 一个基于 Crow + Win32 API 的嵌入式 Web 服务器桌面工具，支持目录/文件模式、IP/端口配置、安全模式等。
 

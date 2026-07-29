@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后室 · Level 0 — 无限回廊</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            background-color: #0a0808;
+            color: #b8a88a;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 8, 8, 0.7);
+            padding: 8px 18px;
+            border-radius: 4px;
+            border: 1px solid #4a3c2a;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+        }
+        #info span {
+            color: #d4c49a;
+            font-weight: bold;
+        }
+        #blocker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            cursor: pointer;
+            backdrop-filter: blur(2px);
+        }
+        #blocker .content {
+            text-align: center;
+            padding: 40px;
+            border: 1px solid #6a5a42;
+            background: rgba(20, 16, 12, 0.9);
+            box-shadow: 0 0 60px rgba(0,0,0,0.9);
+            max-width: 500px;
+        }
+        #blocker h1 {
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: 6px;
+            color: #d4c49a;
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        #blocker .sub {
+            color: #8a7a62;
+            font-size: 14px;
+            letter-spacing: 3px;
+            border-top: 1px solid #3a2c1a;
+            padding-top: 15px;
+            margin-top: 10px;
+        }
+        #blocker .click-hint {
+            margin-top: 30px;
+            color: #b8a88a;
+            font-size: 16px;
+            animation: pulse 2s infinite;
+            border: 1px solid #5a4a32;
+            padding: 12px 30px;
+            display: inline-block;
+            background: rgba(60, 40, 20, 0.3);
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+            100% { opacity: 0.6; transform: scale(1); }
+        }
+        #stats {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #5a4a32;
+            font-size: 12px;
+            background: rgba(0,0,0,0.5);
+            padding: 4px 10px;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 10;
+            border-left: 2px solid #3a2c1a;
+        }
+        a {
+            color: #b8a88a;
+        }
+        @media (max-width: 600px) {
+            #blocker h1 { font-size: 22px; }
+            #blocker .content { padding: 20px; margin: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="info">🚪 后室 · <span>Level 0</span> · 穿过门洞进入无限回廊</div>
+    <div id="stats">房间坐标: <span id="coord">0, 0</span></div>
+
+    <div id="blocker">
+        <div class="content">
+            <h1>✦ 泛黄大厅 ✦</h1>
+            <div style="margin: 15px 0; color: #6a5a42; font-size: 12px; letter-spacing: 2px;">
+                非欧几里得空间 · 潮湿地毯 · 荧光嗡鸣
+            </div>
+            <div style="font-size: 13px; line-height: 1.6; color: #9a8a72; margin-bottom: 10px;">
+                “这里没有出口，只有无尽的回廊与泛黄的记忆。”
+            </div>
+            <div class="click-hint">🖱 点击锁定鼠标 · WASD 移动</div>
+            <div class="sub">⚠ 孤立效应 · 你不会遇到任何人</div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // --- 初始化场景、相机、渲染器 ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0808);
+        scene.fog = new THREE.FogExp2(0x1a1410, 0.035);
+
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 80);
+        camera.position.set(0, 1.7, 0);
+        camera.lookAt(0, 1.7, -1);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.body.appendChild(renderer.domElement);
+
+        // --- 控制器 ---
+        const controls = new PointerLockControls(camera, document.body);
+        const blocker = document.getElementById('blocker');
+        blocker.addEventListener('click', () => {
+            controls.lock();
+            // 唤醒音频上下文
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        });
+
+        // --- 按键监听 ---
+        const keys = { w: false, a: false, s: false, d: false };
+        document.addEventListener('keydown', (e) => {
+            switch (e.code) {
+                case 'KeyW': keys.w = true; e.preventDefault(); break;
+                case 'KeyA': keys.a = true; e.preventDefault(); break;
+                case 'KeyS': keys.s = true; e.preventDefault(); break;
+                case 'KeyD': keys.d = true; e.preventDefault(); break;
+                default: break;
+            }
+        });
+        document.addEventListener('keyup', (e) => {
+            switch (e.code) {
+                case 'KeyW': keys.w = false; e.preventDefault(); break;
+                case 'KeyA': keys.a = false; e.preventDefault(); break;
+                case 'KeyS': keys.s = false; e.preventDefault(); break;
+                case 'KeyD': keys.d = false; e.preventDefault(); break;
+                default: break;
+            }
+        });
+
+        // --- 生成纹理 (Canvas) ---
+        function createWallTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // 底色 - 泛黄墙纸
+            ctx.fillStyle = '#d4c49a';
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // 复古花纹 (70年代风格)
+            ctx.strokeStyle = '#b8a072';
+            ctx.lineWidth = 2;
+            for (let x = 0; x < 512; x += 64) {
+                for (let y = 0; y < 512; y += 64) {
+                    ctx.save();
+                    ctx.translate(x + 32, y + 32);
+                    // 花朵图案
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (i / 6) * Math.PI * 2;
+                        ctx.beginPath();
+                        ctx.arc(Math.cos(angle) * 14, Math.sin(angle) * 14, 6, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+            }
+            
+            // 污渍 / 霉斑
+            for (let i = 0; i < 30; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const r = Math.random() * 40 + 10;
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, r);
+                gradient.addColorStop(0, 'rgba(90, 70, 40, 0.2)');
+                gradient.addColorStop(1, 'rgba(90, 70, 40, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 水渍条纹
+            for (let i = 0; i < 10; i++) {
+                ctx.strokeStyle = `rgba(60, 50, 30, ${Math.random() * 0.15})`;
+                ctx.lineWidth = Math.random() * 8 + 2;
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * 512, Math.random() * 512);
+                ctx.quadraticCurveTo(
+                    Math.random() * 512, Math.random() * 512,
+                    Math.random() * 512, Math.random() * 512
+                );
+                ctx.stroke();
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(2, 2);
+            texture.anisotropy = 4;
+            return texture;
+        }
+
+        function createFloorTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // 深棕色地毯
+            ctx.fillStyle = '#3a2c1b';
+            ctx.fillRect(0, 0, 256, 256);
+            
+            // 颗粒噪点
+            for (let i = 0; i < 5000; i++) {
+                const x = Math.random() * 256;
+                const y = Math.random() * 256;
+                const bright = Math.random() * 30 + 20;
+                ctx.fillStyle = `rgb(${bright}, ${bright * 0.7}, ${bright * 0.4})`;
+                ctx.fillRect(x, y, 1, 1);
+            }
+            
+            // 暗色水渍
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * 256;
+                const y = Math.random() * 256;
+                const r = Math.random() * 30 + 10;
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, r);
+                gradient.addColorStop(0, 'rgba(10, 8, 5, 0.5)');
+                gradient.addColorStop(1, 'rgba(10, 8, 5, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4);
+            return texture;
+        }
+
+        const wallTexture = createWallTexture();
+        const floorTexture = createFloorTexture();
+
+        // --- 音频 (嗡嗡声) ---
+        let audioCtx = null;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            
+            filter.type = 'lowpass';
+            filter.frequency.value = 350;
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.value = 85;
+            gainNode.gain.value = 0.06;
+            
+            oscillator.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            
+            // 第二层低频嗡鸣
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'square';
+            osc2.frequency.value = 55;
+            gain2.gain.value = 0.03;
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.start();
+        } catch (e) {
+            console.log('音频初始化失败 (不影响游戏)');
+        }
+
+        // --- 灯光数组 ---
+        const lightFixtures = [];
+
+        // --- 房间管理 ---
+        const rooms = new Map();
+        let roomX = 0;
+        let roomZ = 0;
+        const coordDisplay = document.getElementById('coord');
+
+        function buildWall(group, width, height, posX, posY, posZ, rotY = 0, isCeiling = false) {
+            const geo = new THREE.BoxGeometry(width, height, 0.08);
+            const mat = new THREE.MeshStandardMaterial({
+                map: isCeiling ? null : wallTexture,
+                color: isCeiling ? 0xd4c49a : 0xffffff,
+                roughness: 0.9,
+                metalness: 0.0,
+                side: THREE.DoubleSide
+            });
+            if (isCeiling) {
+                mat.color.setHex(0xc4b48a);
+                mat.roughness = 0.8;
+            }
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(posX, posY, posZ);
+            mesh.rotation.y = rotY;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            group.add(mesh);
+            return mesh;
+        }
+
+        function generateRoom(rx, rz) {
+            const key = `${rx},${rz}`;
+            if (rooms.has(key)) return;
+
+            const group = new THREE.Group();
+            const posX = rx * 10;
+            const posZ = rz * 10;
+            group.position.set(posX, 0, posZ);
+
+            const W = 10;
+            const D = 10;
+            const H = 3.3;
+            const doorW = 1.2;
+            const doorH = 2.2;
+            const halfW = W / 2;
+            const halfD = D / 2;
+            const halfDoor = doorW / 2;
+
+            // --- 地板 ---
+            const floorGeo = new THREE.PlaneGeometry(W, D);
+            const floorMat = new THREE.MeshStandardMaterial({
+                map: floorTexture,
+                roughness: 0.9,
+                metalness: 0.0,
+                side: THREE.DoubleSide
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0.01;
+            floor.receiveShadow = true;
+            group.add(floor);
+
+            // --- 水渍反光层 (湿地毯) ---
+            const waterMat = new THREE.MeshPhysicalMaterial({
+                color: 0x2a1e0e,
+                transparent: true,
+                opacity: 0.25,
+                roughness: 0.1,
+                metalness: 0.0,
+                envMapIntensity: 0.4,
+                side: THREE.DoubleSide
+            });
+            const water = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.2, D - 0.2), waterMat);
+            water.rotation.x = -Math.PI / 2;
+            water.position.y = 0.04;
+            group.add(water);
+
+            // --- 天花板 ---
+            const ceilMat = new THREE.MeshStandardMaterial({
+                color: 0xc4b48a,
+                roughness: 0.8,
+                metalness: 0.0,
+                side: THREE.DoubleSide
+            });
+            const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), ceilMat);
+            ceil.rotation.x = Math.PI / 2;
+            ceil.position.y = H;
+            ceil.receiveShadow = true;
+            group.add(ceil);
+
+            // --- 墙壁辅助函数 (带门洞) ---
+            function addWallWithDoor(axis, sign) {
+                // axis: 'x' 或 'z', sign: 1 或 -1
+                const isX = axis === 'x';
+                const mainPos = sign * (isX ? halfW : halfD);
+                const perpAxis = isX ? 'z' : 'x';
+                const wallLength = isX ? D : W;
+                const halfLen = wallLength / 2;
+
+                // 左/下部分
+                const p1 = isX ? mainPos : 0;
+                const p2 = isX ? 0 : mainPos;
+                const p3 = isX ? 0 : 0;
+                const w1 = isX ? 0.1 : wallLength / 2 - halfDoor;
+                const w2 = isX ? wallLength / 2 - halfDoor : 0.1;
+                
+                // 顶部 (门上方)
+                const topH = H - doorH;
+                const topY = doorH + topH / 2;
+                
+                // 门框柱子
+                const pillarMat = new THREE.MeshStandardMaterial({ color: 0x2a2218, roughness: 0.9 });
+
+                // 1. 左翼 (负方向)
+                const len1 = halfLen - halfDoor;
+                if (len1 > 0) {
+                    const mesh = buildWall(group, 
+                        isX ? 0.1 : len1, 
+                        H, 
+                        isX ? mainPos : -(halfLen - len1/2), 
+                        H/2, 
+                        isX ? -(halfLen - len1/2) : mainPos,
+                        0
+                    );
+                }
+                // 2. 右翼 (正方向)
+                const len2 = halfLen - halfDoor;
+                if (len2 > 0) {
+                    const mesh = buildWall(group,
+                        isX ? 0.1 : len2,
+                        H,
+                        isX ? mainPos : (halfLen - len2/2),
+                        H/2,
+                        isX ? (halfLen - len2/2) : mainPos,
+                        0
+                    );
+                }
+                // 3. 门框顶部
+                if (topH > 0) {
+                    const mesh = buildWall(group,
+                        isX ? 0.1 : doorW,
+                        topH,
+                        isX ? mainPos : 0,
+                        topY,
+                        isX ? 0 : mainPos,
+                        0
+                    );
+                }
+                // 4. 门框立柱 (左柱)
+                const pillarGeo = new THREE.BoxGeometry(0.08, doorH, 0.08);
+                const pillar1 = new THREE.Mesh(pillarGeo, pillarMat);
+                pillar1.position.set(
+                    isX ? mainPos : -halfDoor,
+                    doorH/2,
+                    isX ? -halfDoor : mainPos
+                );
+                group.add(pillar1);
+                // 右柱
+                const pillar2 = new THREE.Mesh(pillarGeo, pillarMat);
+                pillar2.position.set(
+                    isX ? mainPos : halfDoor,
+                    doorH/2,
+                    isX ? halfDoor : mainPos
+                );
+                group.add(pillar2);
+                // 门框顶梁
+                const topBarGeo = new THREE.BoxGeometry(isX ? 0.08 : doorW, 0.08, isX ? doorW : 0.08);
+                const topBar = new THREE.Mesh(topBarGeo, pillarMat);
+                topBar.position.set(
+                    isX ? mainPos : 0,
+                    doorH,
+                    isX ? 0 : mainPos
+                );
+                group.add(topBar);
+            }
+
+            // 四面墙
+            addWallWithDoor('x', 1);  // 东 (+x)
+            addWallWithDoor('x', -1); // 西 (-x)
+            addWallWithDoor('z', 1);  // 南 (+z)
+            addWallWithDoor('z', -1); // 北 (-z)
+
+            // --- 荧光灯 ---
+            const lightGroup = new THREE.Group();
+            lightGroup.position.set(0, H - 0.15, 0);
+            
+            // 灯管主体
+            const lampMat = new THREE.MeshStandardMaterial({
+                color: 0xffeedd,
+                emissive: 0xffeedd,
+                emissiveIntensity: 1.2,
+                roughness: 0.3,
+            });
+            const lampGeo = new THREE.BoxGeometry(0.8, 0.05, 0.2);
+            const lamp = new THREE.Mesh(lampGeo, lampMat);
+            lamp.position.set(0, 0, 0);
+            lightGroup.add(lamp);
+            
+            // 灯罩支架 (随机歪斜)
+            const bracketMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8 });
+            for (let i = -0.6; i <= 0.6; i+=0.6) {
+                const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.05), bracketMat);
+                bracket.position.set(i, -0.05, 0);
+                lightGroup.add(bracket);
+            }
+            
+            // 点光源 (内部)
+            const light = new THREE.PointLight(0xffeedd, 1.2, 18, 1);
+            light.position.set(0, -0.1, 0);
+            light.castShadow = false;
+            lightGroup.add(light);
+            
+            // 随机倾斜灯管 (非欧几何)
+            lightGroup.rotation.z = (Math.random() - 0.5) * 0.08;
+            lightGroup.rotation.x = (Math.random() - 0.5) * 0.08;
+            lightGroup.rotation.y = (Math.random() - 0.5) * 0.15;
+            
+            group.add(lightGroup);
+            
+            // 储存灯光引用以便闪烁
+            lightFixtures.push({
+                light: light,
+                baseIntensity: 0.8 + Math.random() * 0.6,
+                phase: Math.random() * 100
+            });
+
+            // 随机添加一些墙上的污渍装饰 (小平面)
+            for (let i = 0; i < 3; i++) {
+                const stainMat = new THREE.MeshStandardMaterial({
+                    color: 0x5a4a32,
+                    transparent: true,
+                    opacity: 0.1 + Math.random() * 0.15,
+                    roughness: 1,
+                    side: THREE.DoubleSide
+                });
+                const stain = new THREE.Mesh(new THREE.PlaneGeometry(0.5 + Math.random() * 1.5, 0.5 + Math.random() * 1.5), stainMat);
+                const side = Math.floor(Math.random() * 4);
+                const dist = 4.9;
+                stain.position.set(
+                    side === 0 ? dist : (side === 1 ? -dist : (Math.random() - 0.5) * 6),
+                    0.5 + Math.random() * 2.5,
+                    side === 2 ? dist : (side === 3 ? -dist : (Math.random() - 0.5) * 6)
+                );
+                if (side === 0 || side === 1) stain.rotation.y = side === 0 ? Math.PI/2 : -Math.PI/2;
+                group.add(stain);
+            }
+
+            scene.add(group);
+            rooms.set(key, group);
+        }
+
+        // --- 传送与边界逻辑 ---
+        function updateTeleport() {
+            const x = camera.position.x;
+            const z = camera.position.z;
+            let newRoomX = roomX;
+            let newRoomZ = roomZ;
+            let teleported = false;
+
+            // 东门 (+x)
+            if (x > 4.9 && Math.abs(z) < 0.9) {
+                newRoomX = roomX + 1;
+                camera.position.x = -4.9;
+                teleported = true;
+            }
+            // 西门 (-x)
+            else if (x < -4.9 && Math.abs(z) < 0.9) {
+                newRoomX = roomX - 1;
+                camera.position.x = 4.9;
+                teleported = true;
+            }
+            // 南门 (+z)
+            else if (z > 4.9 && Math.abs(x) < 0.9) {
+                newRoomZ = roomZ + 1;
+                camera.position.z = -4.9;
+                teleported = true;
+            }
+            // 北门 (-z)
+            else if (z < -4.9 && Math.abs(x) < 0.9) {
+                newRoomZ = roomZ - 1;
+                camera.position.z = 4.9;
+                teleported = true;
+            }
+
+            if (teleported) {
+                roomX = newRoomX;
+                roomZ = newRoomZ;
+                coordDisplay.textContent = `${roomX}, ${roomZ}`;
+                // 生成新房间及邻居 (预加载)
+                generateRoom(roomX, roomZ);
+                generateRoom(roomX + 1, roomZ);
+                generateRoom(roomX - 1, roomZ);
+                generateRoom(roomX, roomZ + 1);
+                generateRoom(roomX, roomZ - 1);
+                // 限制房间数量防止内存溢出
+                if (rooms.size > 60) {
+                    let count = 0;
+                    for (let [key, group] of rooms) {
+                        if (count > 40) {
+                            scene.remove(group);
+                            rooms.delete(key);
+                        }
+                        count++;
+                    }
+                }
+            }
+        }
+
+        // --- 碰撞限制 (防止穿墙) ---
+        function clampMovement(dx, dz) {
+            let newX = camera.position.x + dx;
+            let newZ = camera.position.z + dz;
+            
+            // 检查是否在门洞范围内 (允许通过)
+            const inDoorX = Math.abs(newX) > 4.8 && Math.abs(newZ) < 0.9;
+            const inDoorZ = Math.abs(newZ) > 4.8 && Math.abs(newX) < 0.9;
+            const insideRoom = Math.abs(newX) < 4.8 && Math.abs(newZ) < 4.8;
+            
+            if (insideRoom || inDoorX || inDoorZ) {
+                camera.position.x = newX;
+                camera.position.z = newZ;
+            } else {
+                // 逐轴限制
+                const testX = camera.position.x + dx;
+                const testZ = camera.position.z + dz;
+                const inDoorX2 = Math.abs(testX) > 4.8 && Math.abs(camera.position.z) < 0.9;
+                const inRoomX = Math.abs(testX) < 4.8;
+                if (inRoomX || inDoorX2) {
+                    camera.position.x = testX;
+                }
+                const inDoorZ2 = Math.abs(testZ) > 4.8 && Math.abs(camera.position.x) < 0.9;
+                const inRoomZ = Math.abs(testZ) < 4.8;
+                if (inRoomZ || inDoorZ2) {
+                    camera.position.z = testZ;
+                }
+            }
+        }
+
+        // --- 生成初始房间 ---
+        generateRoom(0, 0);
+        generateRoom(1, 0);
+        generateRoom(-1, 0);
+        generateRoom(0, 1);
+        generateRoom(0, -1);
+
+        // --- 辅助环境光 (极暗) ---
+        const ambient = new THREE.AmbientLight(0x221a10, 0.3);
+        scene.add(ambient);
+        
+        // 非常微弱的平行光投射阴影
+        const dirLight = new THREE.DirectionalLight(0xffeedd, 0.2);
+        dirLight.position.set(0, 10, 5);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // --- 窗口自适应 ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- 动画循环 ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.05);
+
+            // 移动
+            if (controls.isLocked) {
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                forward.y = 0;
+                right.y = 0;
+                forward.normalize();
+                right.normalize();
+
+                const speed = 4.0 * delta;
+                let dx = 0, dz = 0;
+                if (keys.w) { dx += forward.x * speed; dz += forward.z * speed; }
+                if (keys.s) { dx -= forward.x * speed; dz -= forward.z * speed; }
+                if (keys.a) { dx -= right.x * speed; dz -= right.z * speed; }
+                if (keys.d) { dx += right.x * speed; dz += right.z * speed; }
+                
+                clampMovement(dx, dz);
+                updateTeleport();
+            }
+
+            // --- 灯光闪烁 (标志性后室氛围) ---
+            const time = performance.now() / 1000;
+            lightFixtures.forEach((fixture, index) => {
+                const light = fixture.light;
+                // 随机频闪
+                if (Math.random() < 0.015) {
+                    light.intensity = Math.random() * 0.6 + 0.4;
+                }
+                if (Math.random() < 0.003) {
+                    light.intensity = 0; // 偶尔短暂熄灭
+                }
+                // 缓慢的嗡鸣脉动
+                const pulse = Math.sin(time * 2.3 + fixture.phase) * 0.06;
+                light.intensity = Math.max(0.1, Math.min(1.8, light.intensity + pulse * delta * 2));
+                // 色温轻微偏移
+                if (Math.random() < 0.002) {
+                    light.color.setHSL(0.1, 0.2, 0.8 + Math.random() * 0.2);
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // 解锁时聚焦
+        controls.addEventListener('unlock', () => {
+            // 不用特别处理
+        });
+
+        console.log('🚪 后室 Level 0 已加载 — 祝你好运，流浪者。');
+    </script>
+</body>
+</html>

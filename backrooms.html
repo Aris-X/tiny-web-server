@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>后室 — The Backrooms</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace;cursor:crosshair;-webkit-font-smoothing:antialiased}
+
+#c{display:block;position:fixed;top:0;left:0;width:100%;height:100%;image-rendering:auto}
+
+/* Scanlines */
+#scanlines{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;
+background:repeating-linear-gradient(0deg,rgba(0,0,0,0.1) 0px,rgba(0,0,0,0.1) 1px,transparent 1px,transparent 3px);
+mix-blend-mode:multiply}
+
+/* Vignette + dirt */
+#vignette{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:11;
+background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,0.7) 80%,rgba(0,0,0,0.9) 100%),
+radial-gradient(ellipse at 20% 30%,rgba(40,35,25,0.15) 0%,transparent 40%),
+radial-gradient(ellipse at 80% 70%,rgba(30,25,20,0.1) 0%,transparent 35%)}
+
+/* Film grain SVG */
+#grain{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9;opacity:0.05;
+background-image:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.75%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23n)%22%2F%3E%3C%2Fsvg%3E);
+background-repeat:repeat;background-size:256px 256px;mix-blend-mode:multiply}
+
+/* Chromatic aberration via CSS */
+#chromatic{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:8;opacity:0;transition:opacity 1.5s}
+#chromatic.on{opacity:1}
+#chromatic::before,#chromatic::after{content:'';position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#chromatic::before{background:rgba(255,20,10,0.012);transform:translate(1.5px,0)}
+#chromatic::after{background:rgba(10,60,255,0.012);transform:translate(-1.5px,0)}
+
+/* Light leak / flicker overlay */
+#lightleak{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:7;mix-blend-mode:screen}
+#lightleak .leak{position:absolute;bottom:0;left:0;width:100%;height:40%;
+background:linear-gradient(0deg,rgba(255,200,150,0.02) 0%,transparent 70%);
+animation:leakPulse 8s ease-in-out infinite}
+@keyframes leakPulse{0%,100%{opacity:0.3}50%{opacity:0.8}}
+
+/* ─── TITLE SCREEN ─── */
+#title-screen{position:fixed;top:0;left:0;width:100%;height:100%;
+background:#0a0a08;display:flex;align-items:center;justify-content:center;z-index:100;cursor:pointer;
+transition:opacity 4s ease;overflow:hidden}
+#title-screen.hidden{opacity:0;pointer-events:none}
+#title-screen .bg-noise{position:absolute;top:0;left:0;width:100%;height:100%;
+background-image:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22200%22%20height%3D%22200%22%3E%3Cfilter%20id%3D%22n2%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.4%22%20numOctaves%3D%222%22%20stitchTiles%3D%22stitch%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23n2)%22%20opacity%3D%220.06%22%2F%3E%3C%2Fsvg%3E);
+background-size:200px 200px;opacity:0.5;animation:noiseAnim 0.5s steps(4) infinite}
+@keyframes noiseAnim{0%{transform:translate(0,0)}25%{transform:translate(-5px,3px)}50%{transform:translate(3px,-5px)}75%{transform:translate(-3px,5px)}}
+#title-screen .vline{position:absolute;left:0;width:100%;height:1px;background:rgba(212,197,169,0.03);animation:scanMove 7s linear infinite}
+@keyframes scanMove{0%{top:0}100%{top:100%}}
+.title-content{text-align:center;position:relative;z-index:1}
+.title-content h1{font-size:clamp(3.5em,10vw,9em);letter-spacing:0.3em;color:#d4c5a9;
+text-shadow:0 0 60px rgba(212,197,169,0.1),0 0 120px rgba(212,197,169,0.03);
+margin-bottom:0.15em;font-weight:100;animation:titleFlicker 5s infinite}
+.title-content .subtitle{font-size:clamp(0.6em,1.3vw,1em);letter-spacing:0.7em;color:#8b7d6b;margin-bottom:3.5em;font-weight:100}
+.title-content .instruction{font-size:clamp(0.55em,0.9vw,0.75em);color:#6b5d4b;animation:pulse 2.8s infinite;letter-spacing:0.2em}
+.title-content .instruction .arrow{display:inline-block;animation:arrowBlink 1s infinite}
+.title-content .corner-tl,.title-content .corner-tr,.title-content .corner-bl,.title-content .corner-br{position:absolute;width:30px;height:30px;border-color:rgba(212,197,169,0.12);border-style:solid}
+.title-content .corner-tl{top:-20px;left:-20px;border-width:1px 0 0 1px}
+.title-content .corner-tr{top:-20px;right:-20px;border-width:1px 1px 0 0}
+.title-content .corner-bl{bottom:-20px;left:-20px;border-width:0 0 1px 1px}
+.title-content .corner-br{bottom:-20px;right:-20px;border-width:0 1px 1px 0}
+@keyframes titleFlicker{0%,100%{opacity:1}4%{opacity:0.6}5%{opacity:1}8%{opacity:0.5}9%{opacity:1}42%{opacity:0.92}44%{opacity:0.7}46%{opacity:1}}
+@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.8}}
+@keyframes arrowBlink{0%,100%{opacity:1}50%{opacity:0.15}}
+
+/* ─── HUD ─── */
+#hud-bottom{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+color:rgba(212,197,169,0.18);font-size:0.55em;letter-spacing:0.35em;z-index:5;pointer-events:none;
+font-family:'Courier New',monospace;white-space:nowrap;text-transform:uppercase}
+#hud-tl{position:fixed;top:22px;left:24px;color:rgba(212,197,169,0.07);font-size:0.45em;letter-spacing:0.2em;
+z-index:5;pointer-events:none;font-family:'Courier New',monospace;text-transform:uppercase;line-height:1.6}
+#hud-tr{position:fixed;top:22px;right:24px;color:rgba(212,197,169,0.06);font-size:0.45em;letter-spacing:0.15em;
+z-index:5;pointer-events:none;font-family:'Courier New',monospace;text-transform:uppercase;text-align:right;line-height:1.6}
+#hud-bl{position:fixed;bottom:60px;left:24px;color:rgba(212,197,169,0.08);font-size:0.4em;letter-spacing:0.15em;
+z-index:5;pointer-events:none;font-family:'Courier New',monospace;line-height:1.8}
+#crosshair{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;
+width:8px;height:8px;opacity:0.12}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(212,197,169,0.5)}
+#crosshair::before{width:1px;height:100%;left:50%;transform:translateX(-50%)}
+#crosshair::after{width:100%;height:1px;top:50%;transform:translateY(-50%)}
+
+/* VHS glitch overlay (activated by JS) */
+#glitch-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:12;
+opacity:0;mix-blend-mode:screen;transition:none}
+#glitch-overlay.active{opacity:1}
+#glitch-overlay .bar{position:absolute;width:100%;height:8px;background:rgba(255,255,255,0.08);left:0}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<!-- Post-processing overlays -->
+<div id="grain"></div>
+<div id="scanlines"></div>
+<div id="vignette"></div>
+<div id="lightleak"><div class="leak"></div></div>
+<div id="chromatic"></div>
+<div id="glitch-overlay"></div>
+<div id="crosshair"></div>
+
+<!-- Title Screen -->
+<div id="title-screen">
+<div class="bg-noise"></div>
+<div class="vline"></div>
+<div class="title-content">
+<div class="corner-tl"></div><div class="corner-tr"></div>
+<div class="corner-bl"></div><div class="corner-br"></div>
+<h1>后室</h1>
+<div class="subtitle">T H E &nbsp; B A C K R O O M S</div>
+<div class="instruction"><span class="arrow">▸</span> 点击进入 <span class="arrow">◂</span></div>
+</div>
+</div>
+
+<!-- HUD -->
+<div id="hud-bottom">noclip.exe // backrooms // level 0 // <span id="fps-display">--</span> fps</div>
+<div id="hud-tl">/// SYSTEM MONITOR ///<br>STATUS: LIMINAL<br>ENV: YELLOW-01</div>
+<div id="hud-tr">NOCLIP v0.4<br>/// ACTIVE ///<br>T: <span id="hud-time">--:--</span></div>
+<div id="hud-bl">[W][A][S][D] 移动<br>[Q][E] 旋转<br>[鼠标] 环视</div>
+
+<script>
+(function(){
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+//  CONFIGURATION
+// ═══════════════════════════════════════════════════════════
+
+const MAP_W = 96;
+const MAP_H = 96;
+const TEX_W = 64;
+const TEX_H = 64;
+const FOV = Math.PI / 2.8;       // ~64 degrees
+const MOVE_SPEED = 3.0;
+const STRAFE_SPEED = 2.2;
+const MOUSE_SENS = 0.0025;
+const RENDER_W = 640;
+const RENDER_H = 360;
+
+// ═══════════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = RENDER_W;
+canvas.height = RENDER_H;
+
+const halfW = RENDER_W / 2;
+const halfH = RENDER_H / 2;
+const tanFOV2 = Math.tan(FOV / 2);
+
+// Shared pixel buffer
+const imgData = ctx.createImageData(RENDER_W, RENDER_H);
+const bufAB = new ArrayBuffer(imgData.data.length);
+const buf8 = new Uint8ClampedArray(bufAB);
+const buf32 = new Uint32Array(bufAB);
+
+// ═══════════════════════════════════════════════════════════
+//  MAP GENERATION
+// ═══════════════════════════════════════════════════════════
+
+let map = [];
+const player = { x: 0, y: 0, angle: 0 };
+
+function generateMap() {
+    map = Array.from({ length: MAP_H }, () => new Uint8Array(MAP_W));
+
+    // fill with walls
+    for (let y = 0; y < MAP_H; y++)
+        for (let x = 0; x < MAP_W; x++)
+            map[y][x] = 1;
+
+    const spacing = 10;
+
+    // Horizontal corridors
+    for (let y = spacing; y < MAP_H - spacing; y += spacing) {
+        for (let x = 1; x < MAP_W - 1; x++) map[y][x] = 0;
+        if (Math.random() < 0.3)
+            for (let x = 1; x < MAP_W - 1; x++) map[y + 1][x] = 0;
+
+        // random wall protrusions
+        const n = 1 + (Math.random() * 3 | 0);
+        for (let i = 0; i < n; i++) {
+            const ox = 3 + (Math.random() * (MAP_W - 6) | 0);
+            if (ox > 1 && ox < MAP_W - 2) {
+                map[y][ox] = 1;
+                if (Math.random() < 0.25) map[y][ox + 1] = 1;
+                if (Math.random() < 0.15) { map[y][ox - 1] = 1; }
+            }
+        }
+    }
+
+    // Vertical corridors
+    for (let x = spacing; x < MAP_W - spacing; x += spacing) {
+        for (let y = 1; y < MAP_H - 1; y++) map[y][x] = 0;
+        if (Math.random() < 0.25)
+            for (let y = 1; y < MAP_H - 1; y++) map[y][x + 1] = 0;
+    }
+
+    // Rooms at intersections
+    for (let y = spacing; y < MAP_H - spacing - 2; y += spacing) {
+        for (let x = spacing; x < MAP_W - spacing - 2; x += spacing) {
+            if (Math.random() > 0.5) continue;
+            const rw = 2 + (Math.random() * 5 | 0);
+            const rh = 2 + (Math.random() * 5 | 0);
+            for (let dy = -1; dy < rh + 1; dy++)
+                for (let dx = -1; dx < rw + 1; dx++) {
+                    const ny = y + dy, nx = x + dx;
+                    if (ny < 1 || ny >= MAP_H - 1 || nx < 1 || nx >= MAP_W - 1) continue;
+                    if (dy >= 0 && dy < rh && dx >= 0 && dx < rw) map[ny][nx] = 0;
+                }
+            // interior junk
+            if (Math.random() < 0.3) {
+                const fx = x + 1 + (Math.random() * (rw - 1) | 0);
+                const fy = y + 1 + (Math.random() * (rh - 1) | 0);
+                if (fy > 0 && fy < MAP_H - 1 && fx > 0 && fx < MAP_W - 1) map[fy][fx] = 1;
+                if (Math.random() < 0.3) {
+                    const fx2 = fx + (Math.random() < 0.5 ? 1 : -1);
+                    if (fx2 > 0 && fx2 < MAP_W - 1 && fy > 0 && fy < MAP_H - 1) map[fy][fx2] = 1;
+                }
+            }
+        }
+    }
+
+    // borders
+    for (let y = 0; y < MAP_H; y++) { map[y][0] = 1; map[y][MAP_W - 1] = 1; }
+    for (let x = 0; x < MAP_W; x++) { map[0][x] = 1; map[MAP_H - 1][x] = 1; }
+
+    // spawn in a clear 3×3 area
+    for (let y = 6; y < MAP_H - 6; y++)
+        for (let x = 6; x < MAP_W - 6; x++)
+            if (map[y][x] === 0 && map[y - 1][x] === 0 && map[y + 1][x] === 0 &&
+                map[y][x - 1] === 0 && map[y][x + 1] === 0)
+                return { x: x + 0.5, y: y + 0.5 };
+    return { x: 8.5, y: 8.5 };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TEXTURES  (canvas → ImageData)
+// ═══════════════════════════════════════════════════════════
+
+function bakeTex(drawFn) {
+    const c = document.createElement('canvas');
+    c.width = TEX_W; c.height = TEX_H;
+    const cx = c.getContext('2d');
+    drawFn(cx, TEX_W, TEX_H);
+    return cx.getImageData(0, 0, TEX_W, TEX_H);
+}
+
+const TEX = {};
+
+// ─── Wall ───
+TEX.wall = bakeTex((cx, w, h) => {
+    cx.fillStyle = '#d4c5a9'; cx.fillRect(0, 0, w, h);
+
+    // vertical stripes (faded wallpaper)
+    for (let x = 0; x < w; x += 7) { cx.fillStyle = 'rgba(195,180,155,0.18)'; cx.fillRect(x, 0, 2, h); }
+
+    // diamond retro pattern
+    cx.strokeStyle = 'rgba(165,150,125,0.22)'; cx.lineWidth = 0.5;
+    for (let y = -6; y < h + 6; y += 11)
+        for (let x = -6; x < w + 6; x += 11) {
+            cx.beginPath(); cx.moveTo(x + 5.5, y); cx.lineTo(x + 11, y + 5.5);
+            cx.lineTo(x + 5.5, y + 11); cx.lineTo(x, y + 5.5); cx.closePath(); cx.stroke();
+        }
+
+    // water stains
+    for (let i = 0; i < 7; i++) {
+        const sx = Math.random() * w, sy = Math.random() * h, sr = 3 + Math.random() * 15;
+        const g = cx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+        g.addColorStop(0, 'rgba(170,148,118,0.4)'); g.addColorStop(0.5, 'rgba(160,140,110,0.2)');
+        g.addColorStop(1, 'rgba(212,197,169,0)');
+        cx.fillStyle = g; cx.beginPath(); cx.arc(sx, sy, sr, 0, Math.PI * 2); cx.fill();
+    }
+
+    // scuff marks
+    for (let i = 0; i < 14; i++) {
+        const sx = Math.random() * w, sy = Math.random() * h;
+        cx.strokeStyle = `rgba(75,65,50,${0.05 + Math.random() * 0.1})`;
+        cx.lineWidth = 0.5 + Math.random() * 2;
+        cx.beginPath(); cx.moveTo(sx, sy);
+        cx.lineTo(sx + (Math.random() - 0.5) * 28, sy + (Math.random() - 0.5) * 10); cx.stroke();
+    }
+
+    // dark splotches
+    for (let i = 0; i < 6; i++) {
+        const sx = Math.random() * w, sy = Math.random() * h;
+        cx.fillStyle = `rgba(55,45,35,${0.03 + Math.random() * 0.05})`;
+        cx.beginPath(); cx.arc(sx, sy, 1 + Math.random() * 6, 0, Math.PI * 2); cx.fill();
+    }
+
+    // baseboard
+    cx.fillStyle = '#5a4835'; cx.fillRect(0, h - 7, w, 7);
+    cx.fillStyle = '#4a3828'; cx.fillRect(0, h - 5, w, 2);
+    cx.fillStyle = '#6a5845'; cx.fillRect(0, h - 1, w, 1);
+    // top trim
+    cx.fillStyle = '#c8b89a'; cx.fillRect(0, 0, w, 3);
+    cx.fillStyle = '#b8a88a'; cx.fillRect(0, 3, w, 1);
+    cx.fillStyle = 'rgba(0,0,0,0.04)'; cx.fillRect(0, 4, w, 1);
+});
+
+// ─── Wall Alt ───
+TEX.wallAlt = bakeTex((cx, w, h) => {
+    cx.fillStyle = '#cbbc9e'; cx.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 5) { cx.fillStyle = 'rgba(185,170,145,0.1)'; cx.fillRect(0, y, w, 1); }
+    for (let i = 0; i < 8; i++) {
+        const sx = Math.random() * w, sy = Math.random() * h, sr = 3 + Math.random() * 13;
+        const g = cx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+        g.addColorStop(0, 'rgba(155,135,105,0.35)'); g.addColorStop(1, 'rgba(203,188,158,0)');
+        cx.fillStyle = g; cx.beginPath(); cx.arc(sx, sy, sr, 0, Math.PI * 2); cx.fill();
+    }
+    cx.fillStyle = '#5a4835'; cx.fillRect(0, h - 7, w, 7);
+    cx.fillStyle = '#4a3828'; cx.fillRect(0, h - 5, w, 2);
+});
+
+// ─── Floor (carpet) ───
+TEX.floor = bakeTex((cx, w, h) => {
+    cx.fillStyle = '#7d6d58'; cx.fillRect(0, 0, w, h);
+    // carpet weave
+    for (let i = 0; i < 800; i++) {
+        const x = Math.random() * w, y = Math.random() * h;
+        const v = 55 + Math.random() * 60;
+        cx.fillStyle = `rgba(${v},${v - 12},${v - 20},0.12)`;
+        cx.fillRect(x, y, 0.5, 0.5 + Math.random() * 1.5);
+    }
+    // grid
+    cx.strokeStyle = 'rgba(110,95,75,0.1)'; cx.lineWidth = 0.5;
+    for (let i = 0; i < w; i += 10) { cx.beginPath(); cx.moveTo(i, 0); cx.lineTo(i, h); cx.stroke(); }
+    for (let i = 0; i < h; i += 10) { cx.beginPath(); cx.moveTo(0, i); cx.lineTo(w, i); cx.stroke(); }
+    // worn patches
+    for (let i = 0; i < 12; i++) {
+        const x = Math.random() * w, y = Math.random() * h;
+        cx.fillStyle = `rgba(45,35,25,${0.02 + Math.random() * 0.04})`;
+        cx.beginPath(); cx.arc(x, y, 2 + Math.random() * 10, 0, Math.PI * 2); cx.fill();
+    }
+});
+
+// ─── Ceiling ───
+TEX.ceil = bakeTex((cx, w, h) => {
+    cx.fillStyle = '#ddd5c5'; cx.fillRect(0, 0, w, h);
+    cx.strokeStyle = 'rgba(155,145,130,0.15)'; cx.lineWidth = 0.5;
+    for (let i = 0; i < w; i += 11) { cx.beginPath(); cx.moveTo(i, 0); cx.lineTo(i, h); cx.stroke(); }
+    for (let i = 0; i < h; i += 11) { cx.beginPath(); cx.moveTo(0, i); cx.lineTo(w, i); cx.stroke(); }
+    for (let i = 0; i < 6; i++) {
+        const x = Math.random() * w, y = Math.random() * h, r = 2 + Math.random() * 6;
+        cx.fillStyle = `rgba(145,125,95,${0.08 + Math.random() * 0.12})`;
+        cx.beginPath(); cx.arc(x, y, r, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = `rgba(125,105,75,${0.04 + Math.random() * 0.08})`;
+        cx.beginPath(); cx.arc(x - 1, y - 1, r * 0.6, 0, Math.PI * 2); cx.fill();
+    }
+});
+
+// ─── Light fixture glow map ───
+TEX.lightGlow = bakeTex((cx, w, h) => {
+    cx.fillStyle = 'rgba(255,248,230,1)'; cx.fillRect(0, 0, w, h);
+    const g = cx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    g.addColorStop(0, 'rgba(255,248,230,1)'); g.addColorStop(0.3, 'rgba(255,245,220,0.6)');
+    g.addColorStop(0.7, 'rgba(255,240,210,0.15)'); g.addColorStop(1, 'rgba(255,240,210,0)');
+    cx.fillStyle = g; cx.fillRect(0, 0, w, h);
+});
+
+// ═══════════════════════════════════════════════════════════
+//  LIGHTING
+// ═══════════════════════════════════════════════════════════
+
+const light = {
+    current: 1.0,
+    target: 1.0,
+    dipTimer: 0,
+    glitchTimer: 0,
+};
+
+function updateLighting(dt) {
+    const t = performance.now() / 1000;
+
+    // continuous flicker — sum of sines
+    const f = (Math.sin(t * 3.7) * 0.6 + Math.sin(t * 7.1) * 0.3 + Math.sin(t * 13.3) * 0.1);
+    let flicker = 0.88 + 0.12 * f;
+
+    // occasional brown-out dips
+    light.dipTimer -= dt;
+    let dip = 1.0;
+    if (light.dipTimer <= 0) {
+        if (Math.random() < 0.004) {
+            dip = 0.30 + Math.random() * 0.25;
+            light.dipTimer = 0.1 + Math.random() * 0.5;
+        } else {
+            light.dipTimer = 0.5 + Math.random() * 2.5;
+        }
+    } else if (light.dipTimer < 0.3) {
+        dip = 0.55 + 0.45 * Math.min(1, light.dipTimer / 0.3);
+    }
+
+    // rare full dim
+    if (Math.random() < 0.0008) {
+        dip = 0.08 + Math.random() * 0.1;
+        light.dipTimer = 0.5 + Math.random() * 1.0;
+    }
+
+    light.target = Math.max(0.05, flicker * dip);
+    light.current += (light.target - light.current) * Math.min(1, dt * 12);
+    light.current = Math.max(0.05, Math.min(1, light.current));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RAYCASTER
+// ═══════════════════════════════════════════════════════════
+
+function castRay(angle) {
+    let a = angle % (Math.PI * 2);
+    if (a < 0) a += Math.PI * 2;
+    const sinA = Math.sin(a);
+    const cosA = Math.cos(a);
+
+    let mapX = Math.floor(player.x);
+    let mapY = Math.floor(player.y);
+
+    const deltaDistX = Math.abs(1 / cosA);
+    const deltaDistY = Math.abs(1 / sinA);
+
+    let stepX, stepY, sideDistX, sideDistY;
+
+    if (cosA < 0) {
+        stepX = -1;
+        sideDistX = (player.x - mapX) * deltaDistX;
+    } else {
+        stepX = 1;
+        sideDistX = (mapX + 1 - player.x) * deltaDistX;
+    }
+    if (sinA < 0) {
+        stepY = -1;
+        sideDistY = (player.y - mapY) * deltaDistY;
+    } else {
+        stepY = 1;
+        sideDistY = (mapY + 1 - player.y) * deltaDistY;
+    }
+
+    let hit = false, side = 0;
+    let steps = 0;
+
+    while (!hit && steps < 200) {
+        steps++;
+        if (sideDistX < sideDistY) {
+            sideDistX += deltaDistX;
+            mapX += stepX;
+            side = 0;
+        } else {
+            sideDistY += deltaDistY;
+            mapY += stepY;
+            side = 1;
+        }
+        if (mapX < 0 || mapX >= MAP_W || mapY < 0 || mapY >= MAP_H) break;
+        if (map[mapY][mapX] > 0) hit = true;
+    }
+
+    if (!hit) return null;
+
+    let perpDist, wallX;
+    if (side === 0) {
+        perpDist = sideDistX - deltaDistX;
+        wallX = player.y + perpDist * sinA;
+    } else {
+        perpDist = sideDistY - deltaDistY;
+        wallX = player.x + perpDist * cosA;
+    }
+    wallX -= Math.floor(wallX);
+    let texX = (wallX * TEX_W) | 0;
+    if (side === 0 && cosA > 0) texX = TEX_W - 1 - texX;
+    if (side === 1 && sinA < 0) texX = TEX_W - 1 - texX;
+
+    const tex = (map[mapY][mapX] === 1) ? TEX.wall : TEX.wallAlt;
+
+    return { dist: perpDist, side, wallX, texX, tex };
+}
+
+// ─── draw textured vertical wall strip ───
+function drawWallStrip(x, y0, y1, tex, texX, brightness, side) {
+    if (x < 0 || x >= RENDER_W) return;
+    const sy = Math.max(0, y0 | 0);
+    const ey = Math.min(RENDER_H - 1, y1 | 0);
+    const h = y1 - y0;
+    if (h <= 0) return;
+
+    const sideDark = side === 1 ? 0.6 : 1.0;
+    const b = Math.min(1, Math.max(0, brightness * sideDark));
+    const invH = 1 / h;
+
+    for (let y = sy; y <= ey; y++) {
+        const ty = (((y - y0) * invH * TEX_H) | 0) & (TEX_H - 1);
+        const idx = (ty * TEX_W + texX) * 4;
+        const pi = y * RENDER_W + x;
+        buf32[pi] = (0xFF << 24) |
+            ((tex.data[idx + 2] * b) | 0) << 16 |
+            ((tex.data[idx + 1] * b) | 0) << 8 |
+            ((tex.data[idx] * b) | 0);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FLOOR / CEILING  (per-column trig — much faster)
+// ═══════════════════════════════════════════════════════════
+
+const colCos = new Float64Array(RENDER_W);
+const colSin = new Float64Array(RENDER_W);
+
+function renderFloorCeil(brightness) {
+    const fTex = TEX.floor;
+    const cTex = TEX.ceil;
+    const halfH_ = RENDER_H / 2;
+
+    // pre-compute per column
+    for (let x = 0; x < RENDER_W; x++) {
+        const ang = player.angle - FOV / 2 + (x / RENDER_W) * FOV;
+        colCos[x] = Math.cos(ang);
+        colSin[x] = Math.sin(ang);
+    }
+
+    for (let x = 0; x < RENDER_W; x++) {
+        const cosA = colCos[x];
+        const sinA = colSin[x];
+
+        for (let y = (halfH_ | 0); y < RENDER_H; y++) {
+            const rowDist = halfH_ / (y - halfH_ + 0.0001);
+            const fog = Math.max(0.06, 1 - rowDist * 0.055);
+            const b = fog * brightness;
+
+            const fx = player.x + rowDist * cosA;
+            const fy = player.y + rowDist * sinA;
+            const tx = ((fx - Math.floor(fx)) * TEX_W) | 0;
+            const ty = ((fy - Math.floor(fy)) * TEX_H) | 0;
+
+            // floor
+            const fi = (ty * TEX_W + tx) * 4;
+            const pi = y * RENDER_W + x;
+            buf32[pi] = (0xFF << 24) |
+                ((fTex.data[fi + 2] * b) | 0) << 16 |
+                ((fTex.data[fi + 1] * b) | 0) << 8 |
+                ((fTex.data[fi] * b) | 0);
+
+            // ceiling (mirror)
+            const cy = RENDER_H - 1 - y;
+            if (cy < 0) continue;
+            const cb = Math.max(0.08, fog * brightness * 0.65);
+            const ci = (ty * TEX_W + tx) * 4;
+            const cpi = cy * RENDER_W + x;
+            buf32[cpi] = (0xFF << 24) |
+                ((cTex.data[ci + 2] * cb) | 0) << 16 |
+                ((cTex.data[ci + 1] * cb) | 0) << 8 |
+                ((cTex.data[ci] * cb) | 0);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CEILING LIGHT FIXTURES
+// ═══════════════════════════════════════════════════════════
+
+function renderLightFixtures(brightness) {
+    // Simplified: render fluorescent tube glow directly on canvas
+    // This avoids the complex (and bug-prone) per-pixel 3D ceiling light calc
+    ctx.save();
+    const halfH_ = RENDER_H / 2;
+    const glowH = 3 + brightness * 2;
+
+    // Determine how many tubes are visible based on view direction
+    // Tubes run along corridors — we draw horizontal glowing strips in ceiling area
+    const numTubes = 3 + (Math.sin(player.angle * 2) * 2 | 0);
+
+    for (let i = 0; i < Math.abs(numTubes); i++) {
+        const tubeY = 2 + i * 14;
+        if (tubeY > halfH_ - 25) break;
+
+        // Main tube glow
+        const alpha = (0.04 + 0.06 * brightness) * (0.85 + 0.15 * Math.sin(i * 3.7 + performance.now() * 0.001 * 2.3));
+        const grad = ctx.createLinearGradient(0, tubeY - glowH, 0, tubeY + glowH);
+        grad.addColorStop(0, `rgba(255,245,220,0)`);
+        grad.addColorStop(0.3, `rgba(255,245,220,${alpha})`);
+        grad.addColorStop(0.5, `rgba(255,248,230,${alpha * 1.5})`);
+        grad.addColorStop(0.7, `rgba(255,245,220,${alpha})`);
+        grad.addColorStop(1, `rgba(255,245,220,0)`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, tubeY - glowH, RENDER_W, glowH * 2);
+
+        // Bright core line
+        const coreAlpha = alpha * 0.7 * brightness;
+        ctx.fillStyle = `rgba(255,252,240,${coreAlpha})`;
+        ctx.fillRect(0, tubeY, RENDER_W, 1);
+
+        // Occasional tube flicker
+        if (Math.random() < 0.002) {
+            ctx.fillStyle = `rgba(255,255,255,${0.15 * brightness})`;
+            ctx.fillRect(0, tubeY - 1, RENDER_W, 3);
+        }
+    }
+
+    // Harsh overhead light wash — top-center light cast
+    const washGrad = ctx.createRadialGradient(RENDER_W / 2, 0, 0, RENDER_W / 2, 0, RENDER_H * 0.4);
+    washGrad.addColorStop(0, `rgba(255,245,220,${0.02 * brightness})`);
+    washGrad.addColorStop(0.5, `rgba(255,245,220,${0.01 * brightness})`);
+    washGrad.addColorStop(1, `rgba(255,245,220,0)`);
+    ctx.fillStyle = washGrad;
+    ctx.fillRect(0, 0, RENDER_W, halfH_);
+
+    ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PARTICLES  (dust motes)
+// ═══════════════════════════════════════════════════════════
+
+const particles = [];
+const NUM_PARTICLES = 100;
+
+function initParticles() {
+    for (let i = 0; i < NUM_PARTICLES; i++) {
+        particles.push({
+            x: player.x + (Math.random() - 0.5) * 10,
+            y: player.y + (Math.random() - 0.5) * 10,
+            z: Math.random() * 2.8,
+            vx: (Math.random() - 0.5) * 0.015,
+            vy: (Math.random() - 0.5) * 0.015,
+            vz: (Math.random() - 0.5) * 0.003,
+            size: 0.3 + Math.random() * 0.6,
+            bright: 0.2 + Math.random() * 0.5,
+            phase: Math.random() * Math.PI * 2,
+        });
+    }
+}
+
+let pTime = 0;
+
+function updateParticles(dt) {
+    pTime += dt;
+    for (const p of particles) {
+        p.x += p.vx + Math.sin(pTime * 0.4 + p.phase) * 0.002;
+        p.y += p.vy + Math.cos(pTime * 0.6 + p.phase) * 0.002;
+        p.z += p.vz;
+        if (p.z < 0) { p.z = 0; p.vz = Math.abs(p.vz); }
+        if (p.z > 2.8) { p.z = 2.8; p.vz = -Math.abs(p.vz); }
+        p.vx += (Math.random() - 0.5) * 0.004;
+        p.vy += (Math.random() - 0.5) * 0.004;
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+    }
+    // recycle far particles
+    for (const p of particles) {
+        const dx = p.x - player.x, dy = p.y - player.y;
+        if (dx * dx + dy * dy > 64) {
+            p.x = player.x + (Math.random() - 0.5) * 5;
+            p.y = player.y + (Math.random() - 0.5) * 5;
+            p.z = Math.random() * 2.8;
+        }
+    }
+}
+
+function renderParticles(brightness) {
+    const cosP = Math.cos(player.angle);
+    const sinP = Math.sin(player.angle);
+    const halfH_ = RENDER_H / 2;
+
+    for (const p of particles) {
+        const dx = p.x - player.x;
+        const dy = p.y - player.y;
+        // camera transform
+        const camZ = -dx * sinP + dy * cosP;
+        if (camZ <= 0.15) continue;
+        const camX = dx * cosP + dy * sinP;
+
+        const sz = (RENDER_W / 2) / (camZ * tanFOV2);
+        const sx = (RENDER_W / 2) + camX * sz;
+        const sy = halfH_ - p.z * sz;
+
+        const halfSize = Math.max(1, (p.size * sz) | 0);
+        if (sx < -halfSize || sx > RENDER_W + halfSize) continue;
+        if (camZ > 14) continue;
+
+        const b = Math.max(0.05, p.bright * brightness * (1 - camZ * 0.06));
+        const alpha = b * 0.2;
+        if (alpha < 0.005) continue;
+
+        const sx0 = Math.max(0, (sx - halfSize) | 0);
+        const sx1 = Math.min(RENDER_W - 1, (sx + halfSize) | 0);
+        const sy0 = Math.max(0, (sy - halfSize) | 0);
+        const sy1 = Math.min(RENDER_H - 1, (sy + halfSize) | 0);
+
+        for (let py = sy0; py <= sy1; py++) {
+            for (let px = sx0; px <= sx1; px++) {
+                const ddx = px - sx, ddy = py - sy;
+                const d2 = ddx * ddx + ddy * ddy;
+                if (d2 > halfSize * halfSize) continue;
+                const fade = 1 - d2 / (halfSize * halfSize);
+                const a = alpha * fade;
+                const pi = py * RENDER_W + px;
+                const mi = 1 - a;
+                buf8[pi * 4] = (buf8[pi * 4] * mi + 225 * a) | 0;
+                buf8[pi * 4 + 1] = (buf8[pi * 4 + 1] * mi + 215 * a) | 0;
+                buf8[pi * 4 + 2] = (buf8[pi * 4 + 2] * mi + 185 * a) | 0;
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VHS GLITCH
+// ═══════════════════════════════════════════════════════════
+
+let glitchTimer = 0;
+let glitchActive = false;
+let glitchBarY = 0;
+let glitchBarH = 0;
+let glitchShift = 0;
+
+function updateGlitch(dt) {
+    glitchTimer -= dt;
+    if (glitchTimer <= 0) {
+        if (Math.random() < 0.03) {
+            // activate glitch
+            glitchActive = true;
+            glitchBarY = Math.random() * RENDER_H;
+            glitchBarH = 2 + (Math.random() * 12 | 0);
+            glitchShift = (Math.random() - 0.5) * 40;
+            glitchTimer = 0.05 + Math.random() * 0.15;
+        } else {
+            glitchActive = false;
+            glitchTimer = 1 + Math.random() * 4;
+        }
+    } else if (glitchActive && glitchTimer < 0.02) {
+        glitchActive = false;
+    }
+}
+
+function applyGlitch() {
+    if (!glitchActive) return;
+    const y0 = Math.max(0, glitchBarY | 0);
+    const y1 = Math.min(RENDER_H - 1, (glitchBarY + glitchBarH) | 0);
+    const shift = glitchShift | 0;
+    if (shift === 0) return;
+
+    // shift a horizontal bar
+    for (let y = y0; y <= y1; y++) {
+        const row = new Uint8ClampedArray(RENDER_W * 4);
+        const offset = y * RENDER_W * 4;
+        // copy row
+        row.set(buf8.subarray(offset, offset + RENDER_W * 4));
+        // write shifted
+        for (let x = 0; x < RENDER_W; x++) {
+            const srcX = x - shift;
+            if (srcX >= 0 && srcX < RENDER_W) {
+                const di = offset + x * 4;
+                const si = offset + srcX * 4;
+                buf8[di] = row[si];
+                buf8[di + 1] = row[si + 1];
+                buf8[di + 2] = row[si + 2];
+            } else {
+                const di = offset + x * 4;
+                buf8[di] = buf8[di] * 0.6 | 0;
+                buf8[di + 1] = buf8[di + 1] * 0.6 | 0;
+                buf8[di + 2] = buf8[di + 2] * 0.6 | 0;
+            }
+        }
+        // add scanline artifact
+        if (Math.random() < 0.15) {
+            const xa = (Math.random() * RENDER_W) | 0;
+            const w = 2 + (Math.random() * 30 | 0);
+            for (let x = xa; x < Math.min(RENDER_W, xa + w); x++) {
+                const pi = offset + x * 4;
+                buf8[pi] = 255; buf8[pi + 1] = 255; buf8[pi + 2] = 255;
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AUDIO (Web Audio API)
+// ═══════════════════════════════════════════════════════════
+
+let audioCtx = null;
+let audioStarted = false;
+
+function initAudio() {
+    if (audioStarted) return;
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioStarted = true;
+
+        const masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.007;
+        masterGain.connect(audioCtx.destination);
+
+        // Fluorescent buzz — multiple harmonics
+        const freqs = [60, 120, 180, 240, 300];
+        const oscNodes = [];
+        for (const f of freqs) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            gain.gain.value = f === 60 ? 0.5 : 0.12 / (f / 60);
+            osc.type = 'sawtooth';
+            osc.frequency.value = f;
+            // subtle frequency wobble
+            const lfo = audioCtx.createOscillator();
+            lfo.frequency.value = 0.2 + Math.random() * 0.4;
+            const lfoG = audioCtx.createGain();
+            lfoG.gain.value = 0.2;
+            lfo.connect(lfoG);
+            lfoG.connect(osc.frequency);
+            lfo.start();
+            osc.connect(gain);
+            gain.connect(masterGain);
+            osc.start();
+            oscNodes.push(osc);
+        }
+
+        // low-pass filter
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 900;
+        filter.Q.value = 0.7;
+        masterGain.connect(filter);
+        filter.connect(audioCtx.destination);
+
+        // brown noise ambient
+        const bufSize = audioCtx.sampleRate * 4;
+        const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+        const ch = buffer.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < bufSize; i++) {
+            const white = Math.random() * 2 - 1;
+            ch[i] = (last + 0.02 * white) / 1.02;
+            last = ch[i];
+            ch[i] *= 0.25;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        noise.loop = true;
+        const nGain = audioCtx.createGain();
+        nGain.gain.value = 0.012;
+        const nFilter = audioCtx.createBiquadFilter();
+        nFilter.type = 'lowpass';
+        nFilter.frequency.value = 180;
+        noise.connect(nGain);
+        nGain.connect(nFilter);
+        nFilter.connect(audioCtx.destination);
+        noise.start();
+
+        // Random ambient creaks / settling sounds
+        setInterval(() => {
+            if (!audioCtx || !audioStarted) return;
+            if (Math.random() < 0.15) return;
+            const dur = 0.08 + Math.random() * 0.6;
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            g.gain.setValueAtTime(0, audioCtx.currentTime);
+            g.gain.linearRampToValueAtTime(0.002 + Math.random() * 0.004, audioCtx.currentTime + 0.02);
+            g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + dur);
+            osc.type = 'sine';
+            osc.frequency.value = 80 + Math.random() * 400;
+            osc.connect(g);
+            g.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        }, 1500);
+
+        // Occasional distant deep thud
+        setInterval(() => {
+            if (!audioCtx || !audioStarted) return;
+            if (Math.random() < 0.92) return;
+            const dur = 0.5 + Math.random() * 1.5;
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            g.gain.setValueAtTime(0, audioCtx.currentTime);
+            g.gain.linearRampToValueAtTime(0.015, audioCtx.currentTime + 0.1);
+            g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + dur);
+            osc.type = 'sine';
+            osc.frequency.value = 40 + Math.random() * 30;
+            osc.connect(g);
+            g.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        }, 4000);
+
+    } catch (e) {
+        console.warn('Audio init failed:', e);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════════════
+
+const keys = {};
+document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; if (e.key !== 'Escape') e.preventDefault(); });
+document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+let hasPointerLock = false;
+
+document.addEventListener('pointerlockchange', () => {
+    hasPointerLock = document.pointerLockElement === canvas;
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (!hasPointerLock) return;
+    player.angle -= e.movementX * MOUSE_SENS;
+});
+
+function handleInput(dt) {
+    const fwd = (keys['w'] || keys['arrowup']) ? 1 : 0;
+    const bwd = (keys['s'] || keys['arrowdown']) ? 1 : 0;
+    const lft = (keys['a'] || keys['arrowleft']) ? 1 : 0;
+    const rgt = (keys['d'] || keys['arrowright']) ? 1 : 0;
+
+    const move = (fwd - bwd) * MOVE_SPEED * dt;
+    const strafe = (rgt - lft) * STRAFE_SPEED * dt;
+
+    if (move !== 0) {
+        const nx = player.x + Math.cos(player.angle) * move;
+        const ny = player.y + Math.sin(player.angle) * move;
+        if (map[Math.floor(ny)][Math.floor(nx)] === 0) {
+            player.x = nx; player.y = ny;
+        } else {
+            if (map[Math.floor(player.y)][Math.floor(nx)] === 0) player.x = nx;
+            else if (map[Math.floor(ny)][Math.floor(player.x)] === 0) player.y = ny;
+        }
+    }
+    if (strafe !== 0) {
+        const sa = player.angle + Math.PI / 2;
+        const nx = player.x + Math.cos(sa) * strafe;
+        const ny = player.y + Math.sin(sa) * strafe;
+        if (map[Math.floor(ny)][Math.floor(nx)] === 0) {
+            player.x = nx; player.y = ny;
+        } else {
+            if (map[Math.floor(player.y)][Math.floor(nx)] === 0) player.x = nx;
+            else if (map[Math.floor(ny)][Math.floor(player.x)] === 0) player.y = ny;
+        }
+    }
+
+    const rotSpeed = 2.0 * dt;
+    if (keys['q']) player.angle -= rotSpeed;
+    if (keys['e']) player.angle += rotSpeed;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MAIN RENDER
+// ═══════════════════════════════════════════════════════════
+
+function renderScene() {
+    const brightness = light.current;
+
+    // Clear
+    buf32.fill(0xFF000000);
+
+    // Floor & ceiling
+    renderFloorCeil(brightness);
+
+    // Walls
+    for (let x = 0; x < RENDER_W; x++) {
+        const rayAngle = player.angle - FOV / 2 + (x / RENDER_W) * FOV;
+        const r = castRay(rayAngle);
+        if (!r) continue;
+
+        const wallH = RENDER_H / r.dist;
+        const wallTop = halfH - wallH / 2;
+        const wallBot = halfH + wallH / 2;
+        const fog = Math.max(0.06, 1 - r.dist * 0.032);
+        const b = brightness * fog;
+
+        drawWallStrip(x, wallTop, wallBot, r.tex, r.texX, b, r.side);
+    }
+
+    // Particles
+    renderParticles(brightness);
+
+    // Per-pixel vignette (subtle)
+    for (let y = 0; y < RENDER_H; y += 2) {
+        const ny = (y / RENDER_H) * 2 - 1;
+        for (let x = 0; x < RENDER_W; x += 2) {
+            const nx = (x / RENDER_W) * 2 - 1;
+            const vig = 1 - 0.15 * (nx * nx + ny * ny);
+            const pi = y * RENDER_W + x;
+            buf8[pi * 4] = (buf8[pi * 4] * vig) | 0;
+            buf8[pi * 4 + 1] = (buf8[pi * 4 + 1] * vig) | 0;
+            buf8[pi * 4 + 2] = (buf8[pi * 4 + 2] * vig) | 0;
+        }
+    }
+
+    // Glitch
+    applyGlitch();
+
+    // Blit to canvas
+    imgData.data.set(buf8);
+    ctx.putImageData(imgData, 0, 0);
+
+    // Light fixtures (post-process on canvas 2D)
+    renderLightFixtures(brightness);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════════
+
+let lastTime = performance.now();
+let gameRunning = false;
+let frameCount = 0;
+let fpsAccum = 0;
+let currentFps = 0;
+
+function gameLoop(time) {
+    const dt = Math.min(0.05, (time - lastTime) / 1000);
+    lastTime = time;
+
+    // FPS counter
+    frameCount++;
+    fpsAccum += dt;
+    if (fpsAccum >= 1) {
+        currentFps = frameCount;
+        document.getElementById('fps-display').textContent = currentFps;
+        frameCount = 0;
+        fpsAccum = 0;
+    }
+
+    if (gameRunning) {
+        updateLighting(dt);
+        handleInput(dt);
+        updateParticles(dt);
+        updateGlitch(dt);
+        renderScene();
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TITLE SCREEN & START
+// ═══════════════════════════════════════════════════════════
+
+const titleEl = document.getElementById('title-screen');
+const chromaticEl = document.getElementById('chromatic');
+const hudTime = document.getElementById('hud-time');
+
+titleEl.addEventListener('click', () => {
+    titleEl.classList.add('hidden');
+    chromaticEl.classList.add('on');
+    gameRunning = true;
+    initAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    canvas.requestPointerLock();
+});
+
+canvas.addEventListener('click', () => {
+    if (!hasPointerLock && gameRunning) canvas.requestPointerLock();
+});
+
+// ─── HUD clock ───
+setInterval(() => {
+    const d = new Date();
+    hudTime.textContent =
+        String(d.getHours()).padStart(2, '0') + ':' +
+        String(d.getMinutes()).padStart(2, '0');
+}, 10000);
+
+// ─── RESIZE ───
+function handleResize() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+}
+window.addEventListener('resize', handleResize);
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+
+const spawn = generateMap();
+player.x = spawn.x;
+player.y = spawn.y;
+player.angle = Math.random() * Math.PI * 2;
+
+initParticles();
+handleResize();
+requestAnimationFrame(gameLoop);
+
+})();
+</script>
+</body>
+</html>

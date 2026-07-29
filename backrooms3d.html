@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>后室 — Level 0</title>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Courier New',monospace;cursor:crosshair;-webkit-font-smoothing:antialiased}
+#blocker{position:fixed;top:0;left:0;width:100%;height:100%;z-index:50;cursor:pointer}
+#blocker .instruction{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);color:rgba(212,197,169,0.25);font-size:0.7em;letter-spacing:0.3em;animation:pulse 2.5s infinite;pointer-events:none}
+#title-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a08;display:flex;align-items:center;justify-content:center;z-index:100;cursor:pointer;transition:opacity 3s ease;overflow:hidden}
+#title-screen.hidden{opacity:0;pointer-events:none}
+#title-screen .bg-noise{position:absolute;top:0;left:0;width:100%;height:100%;background-image:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22200%22%20height%3D%22200%22%3E%3Cfilter%20id%3D%22n2%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.4%22%20numOctaves%3D%222%22%20stitchTiles%3D%22stitch%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23n2)%22%20opacity%3D%220.06%22%2F%3E%3C%2Fsvg%3E);background-size:200px 200px;opacity:0.5;animation:noiseAnim 0.5s steps(4) infinite}
+@keyframes noiseAnim{0%{transform:translate(0,0)}25%{transform:translate(-5px,3px)}50%{transform:translate(3px,-5px)}75%{transform:translate(-3px,5px)}}
+#title-screen .vline{position:absolute;left:0;width:100%;height:1px;background:rgba(212,197,169,0.03);animation:scanMove 7s linear infinite}
+@keyframes scanMove{0%{top:0}100%{top:100%}}
+.tc{text-align:center;position:relative;z-index:1}
+.tc h1{font-size:clamp(3.5em,10vw,9em);letter-spacing:0.3em;color:#d4c5a9;text-shadow:0 0 60px rgba(212,197,169,0.1),0 0 120px rgba(212,197,169,0.03);margin-bottom:0.15em;font-weight:100;animation:tf 5s infinite}
+.tc .sub{font-size:clamp(0.5em,1vw,0.8em);letter-spacing:0.5em;color:#8b7d6b;margin-bottom:0.5em;font-weight:100}
+.tc .sub2{font-size:clamp(0.4em,0.7vw,0.55em);color:#8b7d6b;letter-spacing:0.35em;margin-bottom:3.5em}
+.tc .inst{font-size:clamp(0.55em,0.9vw,0.75em);color:#6b5d4b;animation:pulse 2.8s infinite;letter-spacing:0.2em}
+.tc .inst .arr{display:inline-block;animation:ab 1s infinite}
+.tc .c{position:absolute;width:30px;height:30px;border-color:rgba(212,197,169,0.12);border-style:solid}
+.tc .c-tl{top:-20px;left:-20px;border-width:1px 0 0 1px}
+.tc .c-tr{top:-20px;right:-20px;border-width:1px 1px 0 0}
+.tc .c-bl{bottom:-20px;left:-20px;border-width:0 0 1px 1px}
+.tc .c-br{bottom:-20px;right:-20px;border-width:0 1px 1px 0}
+@keyframes tf{0%,100%{opacity:1}4%{opacity:0.6}5%{opacity:1}8%{opacity:0.5}9%{opacity:1}42%{opacity:0.92}44%{opacity:0.7}46%{opacity:1}}
+@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.8}}
+@keyframes ab{0%,100%{opacity:1}50%{opacity:0.15}}
+#hud{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20}
+#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;opacity:0.06}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(212,197,169,0.3)}
+#crosshair::before{width:1px;height:100%;left:50%;transform:translateX(-50%)}
+#crosshair::after{width:100%;height:1px;top:50%;transform:translateY(-50%)}
+#hud-fps{position:absolute;top:18px;right:22px;color:rgba(212,197,169,0.1);font-size:0.5em;letter-spacing:0.15em;font-family:'Courier New',monospace}
+#hud-info{position:absolute;top:18px;left:22px;color:rgba(212,197,169,0.1);font-size:0.45em;letter-spacing:0.12em;font-family:'Courier New',monospace;line-height:1.8;text-transform:uppercase}
+#hud-bottom{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);color:rgba(212,197,169,0.08);font-size:0.4em;letter-spacing:0.2em;font-family:'Courier New',monospace;white-space:nowrap}
+#hud-pos{position:absolute;bottom:22px;right:22px;color:rgba(212,197,169,0.05);font-size:0.45em;letter-spacing:0.1em;font-family:'Courier New',monospace}
+#difficulty{position:absolute;top:50%;left:22px;transform:translateY(-50%);color:rgba(212,197,169,0.06);font-family:'Courier New',monospace;line-height:1.6}
+#difficulty .dc{font-size:0.65em;letter-spacing:0.2em;color:rgba(212,197,169,0.08);margin-bottom:4px;border:1px solid rgba(212,197,169,0.06);padding:2px 6px;display:inline-block}
+#difficulty .di{font-size:0.4em;letter-spacing:0.15em}
+#difficulty .di span{color:rgba(212,197,169,0.05);margin-right:6px}
+#difficulty .di .s{color:rgba(140,200,140,0.1)}
+#difficulty .di .u{color:rgba(200,180,100,0.1)}
+#difficulty .di .e{color:rgba(200,140,140,0.1)}
+#hud-door{padding:6px 14px;background:rgba(10,9,7,0.7);color:rgba(212,197,169,0.2);font-size:0.45em;letter-spacing:0.2em;position:absolute;bottom:80px;left:50%;transform:translateX(-50%);opacity:0;transition:opacity 0.5s;border:1px solid rgba(212,197,169,0.05);font-family:'Courier New',monospace}
+#hud-door.show{opacity:1}
+#panel-toggle{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(20,18,15,0.7);border:1px solid rgba(212,197,169,0.1);color:rgba(212,197,169,0.3);font-family:'Courier New',monospace;font-size:0.55em;padding:4px 14px;cursor:pointer;letter-spacing:0.2em;transition:all 0.3s}
+#panel-toggle:hover{background:rgba(212,197,169,0.05);color:rgba(212,197,169,0.5)}
+#panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:40;width:380px;max-width:90vw;background:rgba(10,9,7,0.95);border:1px solid rgba(212,197,169,0.12);padding:24px 28px;display:none;font-family:'Courier New',monospace;backdrop-filter:blur(8px)}
+#panel.open{display:block}
+#panel .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid rgba(212,197,169,0.08)}
+#panel .ph span{color:rgba(212,197,169,0.5);font-size:0.6em;letter-spacing:0.25em}
+#panel .ph .close{color:rgba(212,197,169,0.2);cursor:pointer;font-size:0.8em;background:none;border:none;font-family:inherit}
+#panel .ph .close:hover{color:rgba(212,197,169,0.5)}
+.setting{margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.setting label{color:rgba(212,197,169,0.4);font-size:0.55em;letter-spacing:0.15em;flex-shrink:0;margin-right:12px;min-width:70px}
+.setting .val{color:rgba(212,197,169,0.25);font-size:0.5em;min-width:30px;text-align:right}
+.slider{-webkit-appearance:none;appearance:none;height:2px;background:rgba(212,197,169,0.15);outline:none;flex:1;max-width:140px}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:8px;height:8px;border-radius:0;background:rgba(212,197,169,0.3);cursor:pointer}
+.slider::-moz-range-thumb{width:8px;height:8px;border-radius:0;border:none;background:rgba(212,197,169,0.3);cursor:pointer}
+.toggle{position:relative;width:28px;height:14px;background:rgba(212,197,169,0.08);cursor:pointer;flex-shrink:0;transition:all 0.3s}
+.toggle.on{background:rgba(212,197,169,0.2)}
+.toggle::after{content:'';position:absolute;top:1px;left:1px;width:12px;height:12px;background:rgba(212,197,169,0.15);transition:all 0.3s}
+.toggle.on::after{left:15px;background:rgba(212,197,169,0.4)}
+#panel .actions{display:flex;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(212,197,169,0.06)}
+#panel .actions button{flex:1;background:rgba(212,197,169,0.04);border:1px solid rgba(212,197,169,0.08);color:rgba(212,197,169,0.3);font-family:'Courier New',monospace;font-size:0.5em;padding:6px 0;cursor:pointer;letter-spacing:0.15em;transition:all 0.3s}
+#panel .actions button:hover{background:rgba(212,197,169,0.08);color:rgba(212,197,169,0.5)}
+#scanlines{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:15;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.06) 0px,rgba(0,0,0,0.06) 1px,transparent 1px,transparent 3px);mix-blend-mode:multiply}
+#vignette{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:16;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.6) 80%,rgba(0,0,0,0.85) 100%)}
+#grain{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:14;opacity:0.03;background-image:url(data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Cfilter%20id%3D%22n%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.75%22%20numOctaves%3D%223%22%20stitchTiles%3D%22stitch%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20filter%3D%22url(%23n)%22%2F%3E%3C%2Fsvg%3E);background-repeat:repeat;background-size:256px 256px}
+#chromatic{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:13;opacity:0}
+#chromatic.on{opacity:1}
+#chromatic::before,#chromatic::after{content:'';position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#chromatic::before{background:rgba(255,20,10,0.008);transform:translate(1.5px,0)}
+#chromatic::after{background:rgba(10,60,255,0.008);transform:translate(-1.5px,0)}
+#lightleak{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:12;mix-blend-mode:screen}
+#lightleak .lk{position:absolute;bottom:0;left:0;width:100%;height:35%;background:linear-gradient(0deg,rgba(255,200,150,0.01) 0%,transparent 70%);animation:lkP 8s ease-in-out infinite}
+@keyframes lkP{0%,100%{opacity:0.3}50%{opacity:0.7}}
+</style>
+</head>
+<body>
+<div id="title-screen">
+<div class="bg-noise"></div><div class="vline"></div>
+<div class="tc">
+<div class="c c-tl"></div><div class="c c-tr"></div><div class="c c-bl"></div><div class="c c-br"></div>
+<h1>后室</h1>
+<div class="sub">L E V E L &nbsp; 0</div>
+<div class="sub2">"教学关卡" / "泛黄大厅"</div>
+<div class="inst"><span class="arr">▸</span> 点击进入 <span class="arr">◂</span></div>
+</div>
+</div>
+<div id="blocker" style="display:none"><div class="instruction">点击屏幕锁定鼠标</div></div>
+<div id="hud">
+<div id="crosshair"></div>
+<div id="difficulty"><div class="dc">Class 1</div><div class="di"><span class="s">安全</span><span class="u">未勘探完全</span><span class="e">无实体</span></div></div>
+<div id="hud-fps">-- FPS</div>
+<div id="hud-info"><span style="color:rgba(212,197,169,0.2);font-size:1.1em">LEVEL 0</span><br>"教学关卡" / "泛黄大厅"</div>
+<div id="hud-bottom"><span id="hud-status">◆ 安全</span> &nbsp;//&nbsp; 实体: 无 &nbsp;//&nbsp; 未勘探完全</div>
+<div id="hud-pos">X:-- Z:--</div>
+<div id="hud-door">▸ 穿 过 门 廊 ◂</div>
+</div>
+<button id="panel-toggle">▓ SYSTEM CONTROL ▓</button>
+<div id="panel">
+<div class="ph"><span>█ SYSTEM CONTROL v0.5</span><button class="close" id="panel-close">✕</button></div>
+<div class="setting"><label>画面质量</label><input type="range" class="slider" id="g-quality" min="0.5" max="1" step="0.25" value="1"><span class="val" id="g-quality-val">高</span></div>
+<div class="setting"><label>辉光</label><div class="toggle on" id="g-bloom"></div></div>
+<div class="setting"><label>灯光闪烁</label><div class="toggle on" id="g-flicker"></div></div>
+<div class="setting"><label>扭曲效果</label><div class="toggle on" id="g-warp"></div></div>
+<div class="setting"><label>音效音量</label><input type="range" class="slider" id="g-volume" min="0" max="1" step="0.1" value="0.6"><span class="val" id="g-volume-val">60%</span></div>
+<div class="actions"><button id="btn-regenerate">⟳ 重新生成</button><button id="btn-exit">离开</button></div>
+</div>
+<div id="scanlines"></div><div id="vignette"></div><div id="grain"></div><div id="lightleak"><div class="lk"></div></div><div id="chromatic"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+// ═══════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════
+const ROOM_COUNT = 30;
+const WALL_H = 3.2;
+const PLAYER_H = 1.5;
+const MOVE_SPEED = 4.0;
+const DOOR_W = 0.9;
+const DOOR_H = 2.4;
+
+const uiState = {
+    quality: 1, bloom: true, flicker: true, warp: true, volume: 0.6,
+};
+// ═══════════════════════════════════════════════════════════
+//  RENDERER / SCENE
+// ═══════════════════════════════════════════════════════════
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ReinhardToneMapping;
+renderer.toneMappingExposure = 3.0;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a08);
+scene.fog = new THREE.FogExp2(0x0a0a08, 0.04);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 50);
+camera.position.set(0, PLAYER_H, 0);
+
+const ambientLight = new THREE.AmbientLight(0x222222, 0.05);
+scene.add(ambientLight);
+
+// ═══════════════════════════════════════════════════════════
+//  POST-PROCESSING
+// ═══════════════════════════════════════════════════════════
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
+    0.1, 0.3, 0.1
+);
+composer.addPass(bloomPass);
+
+// ─── Chromatic aberration + fisheye warp shader ───
+const warpPass = new ShaderPass({
+    uniforms: {
+        tDiffuse: { value: null },
+        intensity: { value: 0.0 },
+    },
+    vertexShader: `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1);}`,
+    fragmentShader: `
+        uniform float intensity;
+        uniform sampler2D tDiffuse;
+        varying vec2 vUv;
+        void main(){
+            vec2 uv=vUv;
+            vec2 c=uv-0.5;
+            float d=length(c);
+            float str=1.0+intensity*d*0.25;
+            vec2 duv=c*str+0.5;
+            if(duv.x<0.||duv.x>1.||duv.y<0.||duv.y>1.){gl_FragColor=vec4(0,0,0,1);return;}
+            float r=texture2D(tDiffuse,duv+vec2(intensity*0.015,0.)).r;
+            float g=texture2D(tDiffuse,duv).g;
+            float b=texture2D(tDiffuse,duv-vec2(intensity*0.015,0.)).b;
+            float vig=1.0-0.15*d*d;
+            gl_FragColor=vec4(r*vig,g*vig,b*vig,1);
+        }
+    `
+});
+composer.addPass(warpPass);
+const outputPass = new OutputPass();
+composer.addPass(outputPass);
+
+// ═══════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════
+const controls = new PointerLockControls(camera, renderer.domElement);
+
+// ═══════════════════════════════════════════════════════════
+//  TEXTURE GENERATION
+// ═══════════════════════════════════════════════════════════
+function mkCanvas(w, h, fn) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h; fn(c.getContext('2d'), w, h);
+    return c;
+}
+
+function texFromCanvas(c, repX, repY) {
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    if (repX) t.repeat.set(repX, repY || repX);
+    t.anisotropy = 2;
+    return t;
+}
+
+const TEX = {};
+
+// Wall texture — yellowed (RGB 220,200,160) with mold overlay
+TEX.wall = texFromCanvas(mkCanvas(256, 256, (cx, w, h) => {
+    const baseR = 220, baseG = 200, baseB = 160;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const n = (Math.sin(x * 0.3) * Math.cos(y * 0.2) + 1) * 0.5;
+        const r = baseR - 10 + n * 15;
+        const g = baseG - 10 + n * 10;
+        const b = baseB - 15 + n * 5;
+        cx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+        cx.fillRect(x, y, 1, 1);
+    }
+    // Wallpaper stripe pattern
+    for (let x = 0; x < w; x += 8) {
+        cx.fillStyle = 'rgba(200,185,150,0.08)'; cx.fillRect(x, 0, 2, h);
+    }
+    // Diamond pattern
+    cx.strokeStyle = 'rgba(190,175,140,0.12)'; cx.lineWidth = 0.5;
+    for (let y = -8; y < h + 8; y += 12) for (let x = -8; x < w + 8; x += 12) {
+        cx.beginPath(); cx.moveTo(x+6,y); cx.lineTo(x+12,y+6); cx.lineTo(x+6,y+12); cx.lineTo(x,y+6); cx.closePath(); cx.stroke();
+    }
+    // Mold patches (transparency 0.2-0.5)
+    for (let i = 0; i < 15; i++) {
+        const sx = Math.random() * w, sy = Math.random() * h, sr = 3 + Math.random() * 30;
+        const g = cx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+        const a = 0.2 + Math.random() * 0.3;
+        g.addColorStop(0, `rgba(40,50,30,${a})`);
+        g.addColorStop(0.5, `rgba(50,60,35,${a * 0.5})`);
+        g.addColorStop(1, `rgba(220,200,160,0)`);
+        cx.fillStyle = g; cx.beginPath(); cx.arc(sx, sy, sr, 0, Math.PI * 2); cx.fill();
+    }
+    // Dark specks
+    for (let i = 0; i < 30; i++) {
+        cx.fillStyle = `rgba(30,35,20,${0.05 + Math.random() * 0.1})`;
+        cx.beginPath(); cx.arc(Math.random() * w, Math.random() * h, 0.5 + Math.random() * 2, 0, Math.PI * 2); cx.fill();
+    }
+}));
+
+// Floor — dark brown (80,60,40) wet carpet
+TEX.floor = texFromCanvas(mkCanvas(256, 256, (cx, w, h) => {
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const n = Math.random() * 8;
+        const r = 80 + n - 4, g = 60 + n - 4, b = 40 + n - 4;
+        cx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+        cx.fillRect(x, y, 1, 1);
+    }
+    // Carpet fiber texture
+    for (let i = 0; i < 3000; i++) {
+        const x = Math.random() * w, y = Math.random() * h;
+        cx.fillStyle = `rgba(${40 + Math.random()*30},${30+Math.random()*20},${20+Math.random()*15},0.15)`;
+        cx.fillRect(x, y, 0.5, 1 + Math.random() * 2);
+    }
+    // Water stains (large dark wet patches)
+    for (let i = 0; i < 12; i++) {
+        const sx = Math.random() * w, sy = Math.random() * h, sr = 10 + Math.random() * 50;
+        const g = cx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+        g.addColorStop(0, `rgba(30,22,15,${0.3 + Math.random() * 0.3})`);
+        g.addColorStop(0.6, `rgba(45,35,25,${0.15 + Math.random() * 0.15})`);
+        g.addColorStop(1, `rgba(80,60,40,0)`);
+        cx.fillStyle = g; cx.beginPath(); cx.arc(sx, sy, sr, 0, Math.PI * 2); cx.fill();
+    }
+    // Wet sheen streaks
+    for (let i = 0; i < 10; i++) {
+        const x = Math.random() * w, y = Math.random() * h;
+        cx.fillStyle = `rgba(90,70,50,${0.015 + Math.random() * 0.025})`;
+        cx.beginPath();
+        cx.ellipse(x, y, 3 + Math.random() * 20, 1 + Math.random() * 4, Math.random() * Math.PI, 0, Math.PI * 2);
+        cx.fill();
+    }
+}), 4, 4);
+
+// Ceiling — white gypsum with cracks
+TEX.ceil = texFromCanvas(mkCanvas(256, 256, (cx, w, h) => {
+    cx.fillStyle = '#e8e0d0'; cx.fillRect(0, 0, w, h);
+    // Tile grid
+    cx.strokeStyle = 'rgba(180,170,155,0.1)'; cx.lineWidth = 0.5;
+    for (let i = 0; i < w; i += 16) { cx.beginPath(); cx.moveTo(i, 0); cx.lineTo(i, h); cx.stroke(); }
+    for (let i = 0; i < h; i += 16) { cx.beginPath(); cx.moveTo(0, i); cx.lineTo(w, i); cx.stroke(); }
+    // Cracks
+    for (let i = 0; i < 6; i++) {
+        const sx = Math.random() * w, sy = Math.random() * h;
+        cx.strokeStyle = `rgba(80,70,60,${0.1 + Math.random() * 0.15})`;
+        cx.lineWidth = 0.5 + Math.random() * 1;
+        cx.beginPath(); cx.moveTo(sx, sy);
+        for (let j = 0; j < 5; j++) cx.lineTo(sx + (Math.random() - 0.5) * 40, sy + (Math.random() - 0.5) * 30);
+        cx.stroke();
+    }
+    // Water stains on ceiling
+    for (let i = 0; i < 5; i++) {
+        const sx = Math.random() * w, sy = Math.random() * h, sr = 5 + Math.random() * 20;
+        const g = cx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+        g.addColorStop(0, `rgba(160,140,110,${0.15 + Math.random() * 0.15})`);
+        g.addColorStop(1, `rgba(232,224,208,0)`);
+        cx.fillStyle = g; cx.beginPath(); cx.arc(sx, sy, sr, 0, Math.PI * 2); cx.fill();
+    }
+}), 3, 3);
+
+// ─── Mold overlay texture (for walls) ───
+TEX.moldOverlay = texFromCanvas(mkCanvas(128, 128, (cx, w, h) => {
+    cx.clearRect(0, 0, w, h);
+    for (let i = 0; i < 20; i++) {
+        const sx = Math.random() * w, sy = Math.random() * h, sr = 5 + Math.random() * 30;
+        const g = cx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+        g.addColorStop(0, `rgba(35,45,25,${0.15 + Math.random() * 0.2})`);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        cx.fillStyle = g; cx.beginPath(); cx.arc(sx, sy, sr, 0, Math.PI * 2); cx.fill();
+    }
+}));
+
+// ═══════════════════════════════════════════════════════════
+//  ROOM GENERATION
+// ═══════════════════════════════════════════════════════════
+
+const WALLS = ['north', 'south', 'east', 'west'];
+const WALL_VECS = {
+    north: { dx: 0, dz: 1, angle: 0 },
+    south: { dx: 0, dz: -1, angle: Math.PI },
+    east: { dx: -1, dz: 0, angle: Math.PI / 2 },
+    west: { dx: 1, dz: 0, angle: -Math.PI / 2 },
+};
+
+let roomIdCounter = 0;
+let rooms = [];
+
+function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.random() * (i + 1) | 0;
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function rand(min, max) { return min + Math.random() * (max - min); }
+
+function createRoom(x, z, w, d, isManila) {
+    const id = roomIdCounter++;
+    const doors = [];
+    const lights = [];
+    const numDoors = 1 + (Math.random() * 3 | 0);
+    const shuffledWalls = shuffle([...WALLS]);
+    for (let i = 0; i < numDoors; i++) {
+        // Door offset: 1.5～2.5m from corner
+        const fromLeft = Math.random() < 0.5;
+        const off = 1.5 + Math.random() * 1.0;
+        doors.push({ wall: shuffledWalls[i], offset: off, fromLeft, connectedTo: null });
+    }
+    const numLights = 1 + (Math.random() * 2 | 0);
+    for (let i = 0; i < numLights; i++) {
+        lights.push({
+            x: rand(-w/2 + 1.2, w/2 - 1.2),
+            z: rand(-d/2 + 1.2, d/2 - 1.2),
+            yBase: WALL_H - 0.2 + rand(-0.2, 0.2),
+            rotation: rand(-20, 20) * Math.PI / 180,
+            intensity: rand(0.8, 1.2),
+            freq: rand(0.5, 3.0),
+            phase: rand(0, Math.PI * 2),
+        });
+    }
+    const wallRotY = rand(-3, 3) * Math.PI / 180;
+    const ceilTiltX = rand(-5, 5) * Math.PI / 180;
+    const ceilTiltZ = rand(-5, 5) * Math.PI / 180;
+    return {
+        id, x, z, w, d, height: WALL_H, doors, lights,
+        wallRotY, ceilTiltX, ceilTiltZ,
+        isManila, group: new THREE.Group(), meshGroup: new THREE.Group(),
+    };
+}
+
+function getWallWorldPos(room, wall, distFromLeft) {
+    const halfW = room.w / 2, halfD = room.d / 2;
+    let wx, wz;
+    switch (wall) {
+        case 'north': wx = -halfW + distFromLeft; wz = -halfD; break;
+        case 'south': wx = -halfW + distFromLeft; wz = halfD; break;
+        case 'east': wx = halfW; wz = -halfD + distFromLeft; break;
+        case 'west': wx = -halfW; wz = -halfD + distFromLeft; break;
+    }
+    return { x: room.x + wx, z: room.z + wz };
+}
+
+function roomOverlaps(x, z, w, d, existing) {
+    const margin = 2;
+    for (const r of existing) {
+        if (Math.abs(r.x - x) < (r.w / 2 + w / 2 + margin) &&
+            Math.abs(r.z - z) < (r.d / 2 + d / 2 + margin)) return true;
+    }
+    return false;
+}
+
+function generateLevel() {
+    rooms = [];
+    roomIdCounter = 0;
+
+    // Spawn room
+    const sr = createRoom(0, 0, rand(7, 11), rand(7, 11), false);
+    rooms.push(sr);
+
+    const queue = [sr.id];
+    const totalTarget = ROOM_COUNT;
+
+    let safety = 0;
+    while (rooms.length < totalTarget && queue.length > 0 && safety < 500) {
+        safety++;
+        const parent = rooms[queue.shift()];
+        for (const door of parent.doors) {
+            if (rooms.length >= totalTarget) break;
+            if (door.connectedTo) continue;
+
+            const r = Math.random();
+            if (r < 0.4 && rooms.length > 2) {
+                // Connect to existing room (loop)
+                let target;
+                let attempts = 0;
+                do {
+                    target = rooms[Math.random() * rooms.length | 0];
+                    attempts++;
+                } while ((target.id === parent.id || target.doors.length >= 4) && attempts < 20);
+                if (target && target.doors.length < 4) {
+                    const tw = shuffle(WALLS).find(w => !target.doors.find(d => d.wall === w));
+                    if (tw) {
+                        const toff = 1.5 + Math.random() * 1.0;
+                        const tDoor = { wall: tw, offset: toff, fromLeft: Math.random() < 0.5, connectedTo: parent.id };
+                        target.doors.push(tDoor);
+                        door.connectedTo = target.id;
+                        door.targetDoor = target.doors.length - 1;
+                        tDoor.connectedTo = parent.id;
+                        tDoor.targetDoor = parent.doors.indexOf(door);
+                    }
+                }
+            } else {
+                // Create new room
+                let attempts = 0;
+                let nw, nd, nx, nz;
+                do {
+                    nw = rand(6, 12);
+                    nd = rand(6, 12);
+                    nx = parent.x + rand(-30, 30);
+                    nz = parent.z + rand(-30, 30);
+                    attempts++;
+                } while (roomOverlaps(nx, nz, nw, nd, rooms) && attempts < 50);
+
+                if (attempts >= 50) continue;
+
+                const isManila = Math.random() < 0.05;
+                const nr = createRoom(nx, nz, nw, nd, isManila);
+                // Find a wall for the return door
+                const rw = shuffle(WALLS).find(w => !nr.doors.find(d => d.wall === w));
+                if (rw) {
+                    const roff = 1.5 + Math.random() * 1.0;
+                    const rDoor = { wall: rw, offset: roff, fromLeft: Math.random() < 0.5, connectedTo: parent.id };
+                    nr.doors.push(rDoor);
+                    door.connectedTo = nr.id;
+                    door.targetDoor = nr.doors.length - 1;
+                    rDoor.connectedTo = parent.id;
+                    rDoor.targetDoor = parent.doors.indexOf(door);
+                }
+                rooms.push(nr);
+                queue.push(nr.id);
+            }
+        }
+    }
+    return rooms;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ROOM GEOMETRY BUILDER
+// ═══════════════════════════════════════════════════════════
+
+const wallGeo = new THREE.BoxGeometry(1, 1, 0.08);
+const floorGeo = new THREE.PlaneGeometry(1, 1);
+const ceilGeo = new THREE.PlaneGeometry(1, 1);
+const lightGeo = new THREE.BoxGeometry(0.06, 0.03, 0.8);
+const housingGeo = new THREE.BoxGeometry(0.12, 0.03, 0.85);
+
+const wallMat = new THREE.MeshStandardMaterial({ map: TEX.wall, roughness: 0.8, metalness: 0 });
+const floorMat = new THREE.MeshStandardMaterial({ map: TEX.floor, roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
+const ceilMat = new THREE.MeshStandardMaterial({ map: TEX.ceil, roughness: 0.7, metalness: 0, side: THREE.DoubleSide });
+const lightMat = new THREE.MeshStandardMaterial({
+    color: 0xfff8f0, emissive: 0xffffdd, emissiveIntensity: 2.0, roughness: 0.2, metalness: 0.1,
+});
+const lightMatYellow = new THREE.MeshStandardMaterial({
+    color: 0xfff0d0, emissive: 0xffe8b0, emissiveIntensity: 0.8, roughness: 0.3, metalness: 0.05,
+});
+const housingMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9, metalness: 0.3 });
+
+function buildRoomGeometry(room) {
+    while (room.meshGroup.children.length) {
+        const c = room.meshGroup.children[0];
+        room.meshGroup.remove(c);
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) c.material.dispose();
+    }
+
+    const hw = room.w / 2, hd = room.d / 2;
+    const mat = wallMat.clone();
+
+    // ─── Floor ───
+    const fMesh = new THREE.Mesh(floorGeo.clone(), floorMat.clone());
+    fMesh.scale.set(room.w, room.d, 1);
+    fMesh.rotation.x = -Math.PI / 2;
+    fMesh.position.set(room.x, 0, room.z);
+    fMesh.receiveShadow = true;
+    room.meshGroup.add(fMesh);
+
+    // Water stain meshes (slightly recessed, -0.02m)
+    for (let i = 0; i < 6 + (Math.random() * 6 | 0); i++) {
+        const stainGeo = new THREE.CircleGeometry(rand(0.3, 1.0), 16);
+        const stainMat2 = new THREE.MeshStandardMaterial({
+            color: 0x1a1108, transparent: true, opacity: rand(0.2, 0.5),
+            roughness: 0.95, metalness: 0, side: THREE.DoubleSide,
+        });
+        const stain = new THREE.Mesh(stainGeo, stainMat2);
+        stain.rotation.x = -Math.PI / 2;
+        stain.position.set(
+            room.x + rand(-hw + 0.5, hw - 0.5),
+            -0.02,
+            room.z + rand(-hd + 0.5, hd - 0.5),
+        );
+        stain.scale.set(rand(0.5, 2), rand(0.5, 2), 1);
+        room.meshGroup.add(stain);
+    }
+
+    // ─── Walls ───
+    const wallDefs = [
+        { wall: 'north', len: room.w, x: 0, z: -hd, angle: 0 },
+        { wall: 'south', len: room.w, x: 0, z: hd, angle: 0 },
+        { wall: 'east', len: room.d, x: hw, z: 0, angle: Math.PI / 2 },
+        { wall: 'west', len: room.d, x: -hw, z: 0, angle: -Math.PI / 2 },
+    ];
+
+    for (const def of wallDefs) {
+        const doorOnThis = room.doors.find(d => d.wall === def.wall);
+        const crackRot = rand(-3, 3) * Math.PI / 180;
+
+        if (doorOnThis) {
+            // Split wall into two segments around door
+            const doorPos = doorOnThis.offset;
+            const leftSeg = doorPos - DOOR_W / 2;
+            const rightSeg = def.len - doorPos - DOOR_W / 2;
+
+            for (const seg of [
+                { start: 0, end: leftSeg },
+                { start: doorPos + DOOR_W / 2, end: def.len },
+            ]) {
+                const segLen = seg.end - seg.start;
+                if (segLen <= 0.1) continue;
+                const segCenter = seg.start + segLen / 2 - def.len / 2;
+                const wm = mat.clone();
+                wm.map = TEX.wall.clone();
+                wm.map.offset.x = rand(0.3, 0.7);
+                wm.map.offset.y = rand(0.3, 0.7);
+                const wMesh = new THREE.Mesh(wallGeo.clone(), wm);
+                wMesh.scale.set(segLen, WALL_H, 1);
+                if (def.angle === 0) {
+                    wMesh.position.set(room.x + segCenter, WALL_H / 2, room.z + def.z);
+                } else {
+                    wMesh.position.set(room.x + def.x, WALL_H / 2, room.z + segCenter);
+                }
+                wMesh.rotation.y = def.angle + crackRot;
+                wMesh.castShadow = true; wMesh.receiveShadow = true;
+                room.meshGroup.add(wMesh);
+
+                // Mold overlay
+                const moldMesh = new THREE.Mesh(wallGeo.clone(), new THREE.MeshBasicMaterial({
+                    map: TEX.moldOverlay, transparent: true, opacity: rand(0.2, 0.4), depthWrite: false,
+                }));
+                moldMesh.scale.copy(wMesh.scale);
+                moldMesh.position.copy(wMesh.position);
+                moldMesh.rotation.copy(wMesh.rotation);
+                room.meshGroup.add(moldMesh);
+            }
+
+            // Door frame
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x3a3028, roughness: 0.9 });
+            // Door world position
+            const dwPos = getDoorWorldPos(room, doorOnThis);
+            // Top frame
+            const topFrame = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W + 0.1, 0.06, 0.12), frameMat);
+            topFrame.position.set(dwPos.x, DOOR_H + 0.03, dwPos.z);
+            if (def.angle !== 0) topFrame.rotation.y = Math.PI / 2;
+            room.meshGroup.add(topFrame);
+            // Side frames
+            for (const side of [-1, 1]) {
+                const sideF = new THREE.Mesh(new THREE.BoxGeometry(0.06, DOOR_H, 0.12), frameMat);
+                const soff = DOOR_W / 2 * side;
+                if (def.angle === 0) {
+                    sideF.position.set(dwPos.x + soff, DOOR_H / 2, dwPos.z);
+                } else {
+                    sideF.position.set(dwPos.x, DOOR_H / 2, dwPos.z + soff);
+                    sideF.rotation.y = Math.PI / 2;
+                }
+                room.meshGroup.add(sideF);
+            }
+        } else {
+            // Full wall
+            const wm = mat.clone();
+            wm.map = TEX.wall.clone();
+            wm.map.offset.x = rand(0.3, 0.7);
+            wm.map.offset.y = rand(0.3, 0.7);
+            const wMesh = new THREE.Mesh(wallGeo.clone(), wm);
+            wMesh.scale.set(def.len, WALL_H, 1);
+            if (def.angle === 0) {
+                wMesh.position.set(room.x, WALL_H / 2, room.z + def.z);
+            } else {
+                wMesh.position.set(room.x + def.x, WALL_H / 2, room.z);
+            }
+            wMesh.rotation.y = def.angle + crackRot;
+            wMesh.castShadow = true; wMesh.receiveShadow = true;
+            room.meshGroup.add(wMesh);
+
+            // Mold overlay
+            const moldMesh = new THREE.Mesh(wallGeo.clone(), new THREE.MeshBasicMaterial({
+                map: TEX.moldOverlay, transparent: true, opacity: rand(0.2, 0.4), depthWrite: false,
+            }));
+            moldMesh.scale.copy(wMesh.scale);
+            moldMesh.position.copy(wMesh.position);
+            moldMesh.rotation.copy(wMesh.rotation);
+            room.meshGroup.add(moldMesh);
+        }
+    }
+
+    // ─── Ceiling (tilted ±5°) ───
+    const cMesh = new THREE.Mesh(ceilGeo.clone(), ceilMat.clone());
+    cMesh.scale.set(room.w, room.d, 1);
+    cMesh.rotation.x = Math.PI / 2 + room.ceilTiltX;
+    cMesh.rotation.z = room.ceilTiltZ;
+    cMesh.position.set(room.x, WALL_H, room.z);
+    room.meshGroup.add(cMesh);
+
+    // ─── Light fixtures ───
+    for (const l of room.lights) {
+        const useYellow = Math.random() < 0.15;
+        const tube = new THREE.Mesh(lightGeo.clone(), useYellow ? lightMatYellow : lightMat);
+        tube.position.set(room.x + l.x, l.yBase, room.z + l.z);
+        tube.rotation.y = l.rotation;
+        room.meshGroup.add(tube);
+
+        const housing = new THREE.Mesh(housingGeo.clone(), housingMat);
+        housing.position.set(room.x + l.x, l.yBase + 0.02, room.z + l.z);
+        housing.rotation.y = l.rotation;
+        room.meshGroup.add(housing);
+    }
+
+    // ─── Manila room furniture ───
+    if (room.isManila) {
+        // Table
+        const tableMat = new THREE.MeshStandardMaterial({ color: 0x5a3a28, roughness: 0.9 });
+        const tableTop = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 0.9), tableMat);
+        tableTop.position.set(room.x, 0.8, room.z);
+        room.meshGroup.add(tableTop);
+        for (const [dx, dz] of [[-0.6,-0.35],[-0.6,0.35],[0.6,-0.35],[0.6,0.35]]) {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.8, 0.05), tableMat);
+            leg.position.set(room.x + dx, 0.4, room.z + dz);
+            room.meshGroup.add(leg);
+        }
+        // Chairs
+        const chairMat = new THREE.MeshStandardMaterial({ color: 0x3a2a20, roughness: 0.95 });
+        for (const side of [-0.8, 0.8]) {
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.5), chairMat);
+            seat.position.set(room.x + side, 0.5, room.z);
+            room.meshGroup.add(seat);
+            const back = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.04), chairMat);
+            back.position.set(room.x + side, 0.8, room.z - 0.27);
+            room.meshGroup.add(back);
+            for (const [cdx, cdz] of [[-0.2,-0.2],[-0.2,0.2],[0.2,-0.2],[0.2,0.2]]) {
+                const cl = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.5, 0.03), chairMat);
+                cl.position.set(room.x + side + cdx, 0.25, room.z + cdz);
+                room.meshGroup.add(cl);
+            }
+        }
+        // Almond water bottles
+        const bottleMat = new THREE.MeshPhysicalMaterial({
+            color: 0x88aaaa, roughness: 0.1, metalness: 0, clearcoat: 0.3, transparent: true, opacity: 0.6,
+        });
+        const capMat = new THREE.MeshStandardMaterial({ color: 0x2288cc, roughness: 0.5 });
+        const numBottles = 1 + (Math.random() * 3 | 0);
+        for (let i = 0; i < numBottles; i++) {
+            const bx = room.x + rand(-0.5, 0.5), bz = room.z + rand(-0.3, 0.3);
+            const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.18, 8), bottleMat);
+            bottle.position.set(bx, 0.85, bz);
+            room.meshGroup.add(bottle);
+            const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.025, 8), capMat);
+            cap.position.set(bx, 0.94, bz);
+            room.meshGroup.add(cap);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LIGHTING — per-room point lights
+// ═══════════════════════════════════════════════════════════
+
+const allPointLights = [];
+
+function buildLights(room) {
+    for (const l of room.lights) {
+        const pl = new THREE.PointLight(0xffeedd, l.intensity * 2.5, 15, 2);
+        pl.position.set(room.x + l.x, l.yBase - 0.1, room.z + l.z);
+        pl.castShadow = true;
+        pl.shadow.mapSize.set(256, 256);
+        pl.shadow.camera.near = 0.1;
+        pl.shadow.camera.far = 6;
+        room.meshGroup.add(pl);
+        // Store light data for flicker
+        allPointLights.push({ light: pl, data: l, roomId: room.id });
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DOOR TELEPORT SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+let currentRoomId = 0;
+let doorCooldown = 0;
+let nearDoorInfo = null;
+
+function updateDoors(playerPos, dt) {
+    doorCooldown -= dt;
+    const currentRoom = rooms.find(r => r.id === currentRoomId);
+    if (!currentRoom) return;
+
+    nearDoorInfo = null;
+
+    for (const door of currentRoom.doors) {
+        if (!door.connectedTo) continue;
+        const doorWorld = getDoorWorldPos(currentRoom, door);
+        const dx = playerPos.x - doorWorld.x;
+        const dz = playerPos.z - doorWorld.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
+        if (dist < 1.0) {
+            nearDoorInfo = { roomId: currentRoomId, door };
+        }
+
+        if (dist < 0.6 && doorCooldown <= 0) {
+            // Teleport!
+            const targetRoom = rooms.find(r => r.id === door.connectedTo);
+            if (!targetRoom) continue;
+            const targetDoorIdx = door.targetDoor;
+            if (targetDoorIdx === undefined || targetDoorIdx >= targetRoom.doors.length) continue;
+            const targetDoor = targetRoom.doors[targetDoorIdx];
+            const targetPos = getDoorWorldPos(targetRoom, targetDoor);
+            const wallVec = WALL_VECS[targetDoor.wall];
+
+            // Place player just inside the target room
+            const enterDist = 1.0;
+            camera.position.set(
+                targetPos.x + wallVec.dx * enterDist,
+                PLAYER_H,
+                targetPos.z + wallVec.dz * enterDist,
+            );
+
+            // Rotate player 5-10° disorient
+            const disorient = (Math.random() - 0.5) * (10 * Math.PI / 180);
+            camera.rotation.y += disorient;
+
+            currentRoomId = targetRoom.id;
+            doorCooldown = 1.0;
+            nearDoorInfo = null;
+            break;
+        }
+    }
+
+    // HUD door prompt
+    const el = document.getElementById('hud-door');
+    if (nearDoorInfo && doorCooldown <= 0) {
+        el.classList.add('show');
+        el.textContent = '▸ 穿 过 门 廊 ◂';
+    } else {
+        el.classList.remove('show');
+    }
+}
+
+function getDoorWorldPos(room, door) {
+    const halfW = room.w / 2, halfD = room.d / 2;
+    const off = door.offset;
+    let x, z;
+    switch (door.wall) {
+        case 'north': x = -halfW + off; z = -halfD; break;
+        case 'south': x = -halfW + off; z = halfD; break;
+        case 'east': x = halfW; z = -halfD + off; break;
+        case 'west': x = -halfW; z = -halfD + off; break;
+    }
+    return { x: room.x + x, z: room.z + z };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WARP EFFECT (distance to room center)
+// ═══════════════════════════════════════════════════════════
+
+function updateWarp(playerPos) {
+    const currentRoom = rooms.find(r => r.id === currentRoomId);
+    if (!currentRoom || !uiState.warp) {
+        warpPass.uniforms.intensity.value = 0;
+        return;
+    }
+    const dx = playerPos.x - currentRoom.x;
+    const dz = playerPos.z - currentRoom.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const maxDist = Math.max(currentRoom.w, currentRoom.d) * 0.4;
+    const intensity = Math.max(0, 1 - dist / maxDist);
+    warpPass.uniforms.intensity.value = intensity * intensity * 0.8;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FLICKER UPDATE
+// ═══════════════════════════════════════════════════════════
+
+function updateFlicker(time) {
+    const t = time * 0.001;
+    for (const pl of allPointLights) {
+        if (!uiState.flicker) {
+            pl.light.intensity = pl.data.intensity * 0.6;
+            continue;
+        }
+        const flicker = 0.85 + 0.15 * Math.sin(t * pl.data.freq * 2 + pl.data.phase) *
+            Math.sin(t * pl.data.freq * 4.7 + pl.data.phase * 1.3);
+        let dip = 1;
+        if (Math.random() < 0.002) dip = 0.3 + Math.random() * 0.4;
+        pl.light.intensity = pl.data.intensity * 0.6 * flicker * dip;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AUDIO
+// ═══════════════════════════════════════════════════════════
+let audioCtx = null;
+
+function initAudio() {
+    if (audioCtx) return;
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const master = audioCtx.createGain();
+        master.gain.value = 0.015 * uiState.volume * 2;
+        master.connect(audioCtx.destination);
+
+        const freqs = [60, 120, 180, 240, 300, 420];
+        for (const f of freqs) {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            g.gain.value = f === 60 ? 0.8 : 0.2 / (f / 60);
+            osc.type = f === 60 ? 'sawtooth' : 'square';
+            osc.frequency.value = f + (Math.random() - 0.5) * 3;
+            const lfo = audioCtx.createOscillator();
+            lfo.frequency.value = 0.3 + Math.random() * 0.5;
+            const lfoG = audioCtx.createGain();
+            lfoG.gain.value = 0.5 + Math.random() * 0.3;
+            lfo.connect(lfoG); lfoG.connect(osc.frequency); lfo.start();
+            osc.connect(g); g.connect(master); osc.start();
+        }
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass'; filter.frequency.value = 1200; filter.Q.value = 1.2;
+        master.connect(filter); filter.connect(audioCtx.destination);
+
+        const bufSize = audioCtx.sampleRate * 4;
+        const buffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+        const ch = buffer.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < bufSize; i++) {
+            const white = Math.random() * 2 - 1;
+            ch[i] = (last + 0.02 * white) / 1.02; last = ch[i]; ch[i] *= 0.35;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer; noise.loop = true;
+        const nGain = audioCtx.createGain(); nGain.gain.value = 0.025;
+        const nFilter = audioCtx.createBiquadFilter();
+        nFilter.type = 'lowpass'; nFilter.frequency.value = 250;
+        noise.connect(nGain); nGain.connect(nFilter); nFilter.connect(audioCtx.destination);
+        noise.start();
+
+        setInterval(() => {
+            if (!audioCtx || Math.random() < 0.15) return;
+            const dur = 0.08 + Math.random() * 0.5;
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            g.gain.setValueAtTime(0, audioCtx.currentTime);
+            g.gain.linearRampToValueAtTime(0.004 * uiState.volume, audioCtx.currentTime + 0.02);
+            g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + dur);
+            osc.type = 'sine'; osc.frequency.value = 80 + Math.random() * 400;
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + dur);
+        }, 1500);
+    } catch (e) { console.warn('Audio:', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════════════
+const keys = {};
+const blockerEl = document.getElementById('blocker');
+const panelEl = document.getElementById('panel');
+
+document.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === 'Escape') {
+        if (controls.isLocked) controls.unlock();
+        else panelEl.classList.remove('open');
+    }
+    if (e.key !== 'Escape') e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+controls.addEventListener('unlock', () => { if (gameRunning) blockerEl.style.display = 'block'; });
+controls.addEventListener('lock', () => { blockerEl.style.display = 'none'; panelEl.classList.remove('open'); });
+
+blockerEl.addEventListener('click', () => {
+    if (!controls.isLocked && gameRunning) controls.lock();
+});
+
+// ═══════════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════════
+let gameRunning = false;
+let lastTime = 0;
+let frameCount = 0;
+let fpsAccum = 0;
+
+function animate(time) {
+    requestAnimationFrame(animate);
+    if (!gameRunning) return;
+
+    const dt = Math.min(0.05, (time - lastTime) / 1000);
+    lastTime = time;
+
+    // Keep player at eye height (no falling)
+    camera.position.y = PLAYER_H;
+
+    // FPS
+    frameCount++;
+    fpsAccum += dt;
+    if (fpsAccum >= 0.5) {
+        document.getElementById('hud-fps').textContent = Math.round(frameCount / fpsAccum) + ' FPS';
+        frameCount = 0; fpsAccum = 0;
+    }
+
+    // Movement
+    if (controls.isLocked) {
+        const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        fwd.y = 0; fwd.normalize();
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        right.y = 0; right.normalize();
+
+        let mf = 0, mr = 0;
+        if (keys['w'] || keys['arrowup']) mf = 1;
+        if (keys['s'] || keys['arrowdown']) mf = -1;
+        if (keys['d'] || keys['arrowright']) mr = 1;
+        if (keys['a'] || keys['arrowleft']) mr = -1;
+
+        const speed = MOVE_SPEED * dt;
+        const ss = speed * 0.7;
+
+        const currentRoom = rooms.find(r => r.id === currentRoomId);
+        const tryMove = (dx, dz) => {
+            const nx = camera.position.x + dx;
+            const nz = camera.position.z + dz;
+            if (currentRoom) {
+                const hw = currentRoom.w / 2 - 0.15;
+                const hd = currentRoom.d / 2 - 0.15;
+                const rx = nx - currentRoom.x;
+                const rz = nz - currentRoom.z;
+                const insideX = Math.abs(rx) < hw;
+                const insideZ = Math.abs(rz) < hd;
+                if (insideX && insideZ) {
+                    camera.position.x = nx;
+                    camera.position.z = nz;
+                } else {
+                    // Outside room bounds — only allow if near a door
+                    let nearDoor = false;
+                    for (const door of currentRoom.doors) {
+                        if (!door.connectedTo) continue;
+                        const dw = getDoorWorldPos(currentRoom, door);
+                        const dd = Math.sqrt((nx - dw.x) ** 2 + (nz - dw.z) ** 2);
+                        if (dd < 0.9) { nearDoor = true; break; }
+                    }
+                    if (nearDoor) {
+                        camera.position.x = nx;
+                        camera.position.z = nz;
+                    }
+                }
+            } else {
+                camera.position.x = nx;
+                camera.position.z = nz;
+            }
+        };
+
+        if (mf !== 0) tryMove(fwd.x * speed * mf, fwd.z * speed * mf);
+        if (mr !== 0) tryMove(right.x * ss * mr, right.z * ss * mr);
+
+        // HUD pos
+        document.getElementById('hud-pos').textContent =
+            `X:${camera.position.x.toFixed(1)} Z:${camera.position.z.toFixed(1)}`;
+    }
+
+    // Door teleport
+    updateDoors(camera.position, dt);
+
+    // Flicker
+    updateFlicker(time);
+
+    // Warp
+    updateWarp(camera.position);
+
+    // Render
+    composer.render();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI BINDINGS
+// ═══════════════════════════════════════════════════════════
+
+document.getElementById('title-screen').addEventListener('click', () => {
+    document.getElementById('title-screen').classList.add('hidden');
+    document.getElementById('chromatic').classList.add('on');
+    gameRunning = true;
+    initAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    blockerEl.style.display = 'none';
+    controls.lock();
+});
+
+document.getElementById('panel-toggle').addEventListener('click', () => {
+    panelEl.classList.toggle('open');
+    if (panelEl.classList.contains('open') && controls.isLocked) controls.unlock();
+});
+document.getElementById('panel-close').addEventListener('click', () => panelEl.classList.remove('open'));
+
+document.getElementById('g-quality').addEventListener('input', function() {
+    const v = parseFloat(this.value);
+    document.getElementById('g-quality-val').textContent = {0.5:'低',0.75:'中',1:'高'}[v] || '高';
+    uiState.quality = v;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio * v, 2));
+});
+document.getElementById('g-bloom').addEventListener('click', function() {
+    this.classList.toggle('on');
+    uiState.bloom = this.classList.contains('on');
+    bloomPass.enabled = uiState.bloom;
+});
+document.getElementById('g-flicker').addEventListener('click', function() {
+    this.classList.toggle('on');
+    uiState.flicker = this.classList.contains('on');
+});
+document.getElementById('g-warp').addEventListener('click', function() {
+    this.classList.toggle('on');
+    uiState.warp = this.classList.contains('on');
+});
+document.getElementById('g-volume').addEventListener('input', function() {
+    const v = parseFloat(this.value);
+    document.getElementById('g-volume-val').textContent = Math.round(v * 100) + '%';
+    uiState.volume = v;
+});
+
+document.getElementById('btn-regenerate').addEventListener('click', () => {
+    // Clean up
+    for (const pl of allPointLights) {
+        pl.light.parent?.remove(pl.light);
+    }
+    allPointLights.length = 0;
+    for (const room of rooms) {
+        scene.remove(room.meshGroup);
+    }
+    // Generate
+    generateLevel();
+    for (const room of rooms) {
+        buildRoomGeometry(room);
+        buildLights(room);
+        scene.add(room.meshGroup);
+    }
+    currentRoomId = 0;
+    const sr = rooms[0];
+    camera.position.set(sr.x, PLAYER_H, sr.z);
+    panelEl.classList.remove('open');
+});
+
+document.getElementById('btn-exit').addEventListener('click', () => {
+    if (confirm('确定要离开吗？')) {
+        document.getElementById('hud-status').textContent = '◆ TERMINATED';
+        gameRunning = false;
+        panelEl.classList.remove('open');
+        blockerEl.style.display = 'none';
+        if (controls.isLocked) controls.unlock();
+    }
+});
+
+window.addEventListener('resize', () => {
+    const w = window.innerWidth, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    composer.setSize(w, h);
+});
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+
+generateLevel();
+for (const room of rooms) {
+    buildRoomGeometry(room);
+    buildLights(room);
+    scene.add(room.meshGroup);
+}
+const sr = rooms[0];
+camera.position.set(sr.x, PLAYER_H, sr.z);
+
+// Render
+composer.render();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

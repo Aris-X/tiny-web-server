@@ -1,0 +1,16 @@
+# Build
+x64/
+Debug/
+Release/
+*.user
+*.sdf
+*.opensdf
+*.log
+
+# vcpkg
+vcpkg_installed/
+
+# IDE
+.vs/
+*.suo
+*.VC.db

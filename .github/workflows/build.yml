@@ -1,0 +1,58 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [x64, Win32]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Setup vcpkg
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Install dependencies
+        run: .\vcpkg\vcpkg install --triplet ${{ matrix.arch }}-windows
+
+      - name: Build
+        run: msbuild WindowsProject1.slnx /p:Configuration=Release /p:Platform=${{ matrix.arch }}
+
+      - name: Package
+        run: |
+          mkdir release -Force
+          copy ${{ matrix.arch }}\Release\WindowsProject1.exe release\WindowsProject1-${{ matrix.arch }}.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tiny-web-server-${{ matrix.arch }}
+          path: release/
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create ZIPs
+        shell: pwsh
+        run: |
+          Compress-Archive -Path artifacts\tiny-web-server-x64\* -DestinationPath tiny-web-server-${{ github.ref_name }}-win64.zip
+          Compress-Archive -Path artifacts\tiny-web-server-Win32\* -DestinationPath tiny-web-server-${{ github.ref_name }}-win32.zip
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: *.zip

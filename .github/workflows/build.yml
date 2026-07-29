@@ -10,7 +10,11 @@ jobs:
   build:
     strategy:
       matrix:
-        arch: [x64, Win32]
+        include:
+          - arch: x64
+            triplet: x64-windows
+          - arch: Win32
+            triplet: x86-windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +27,7 @@ jobs:
           .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
 
       - name: Install dependencies
-        run: .\vcpkg\vcpkg install --triplet ${{ matrix.arch }}-windows
+        run: .\vcpkg\vcpkg install --triplet ${{ matrix.triplet }}
 
       - name: Build
         run: msbuild WindowsProject1.slnx /p:Configuration=Release /p:Platform=${{ matrix.arch }}

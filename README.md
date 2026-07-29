@@ -1,6 +1,12 @@
 # 本地 Web 服务器
 
+[![Build](https://github.com/Aris-X/tiny-web-server/actions/workflows/build.yml/badge.svg)](https://github.com/Aris-X/tiny-web-server/actions/workflows/build.yml)
+
 一个基于 Crow + Win32 API 的嵌入式 Web 服务器桌面工具，支持目录/文件模式、IP/端口配置、安全模式等。
+
+## 下载
+
+从 [Releases](https://github.com/Aris-X/tiny-web-server/releases) 页面下载最新版本的可执行文件（无需安装，直接运行）。
 
 ## 功能
 
@@ -17,20 +23,26 @@
 
 ### 前置要求
 
-- Visual Studio 2022
-- vcpkg（已启用清单模式）
+- Visual Studio 2022（含 C++ 桌面开发工作负载）
+- vcpkg（已启用清单模式，自动安装 Crow 依赖）
 
 ### 步骤
 
 1. 克隆仓库
 2. 用 Visual Studio 打开 `WindowsProject1.slnx`
-3. 选择 Release/x64 配置
+3. 选择 Release/x64 或 Release/Win32 配置
 4. 生成解决方案
 
 或命令行：
 
 ```bash
-msbuild WindowsProject1.slnx /p:Configuration=Release /p:Platform=x64
+msbuild WindowsProject1.vcxproj /p:Configuration=Release /p:Platform=x64
+```
+
+Win32：
+
+```bash
+msbuild WindowsProject1.vcxproj /p:Configuration=Release /p:Platform=Win32
 ```
 
 ## 使用

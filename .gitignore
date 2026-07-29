@@ -14,3 +14,7 @@ vcpkg_installed/
 .vs/
 *.suo
 *.VC.db
+
+vcpkg/
+
+*.nupkg

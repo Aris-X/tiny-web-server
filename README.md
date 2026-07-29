@@ -8,6 +8,8 @@
 
 从 [Releases](https://github.com/Aris-X/tiny-web-server/releases) 页面下载最新版本的可执行文件（无需安装，直接运行）。
 
+![截图](screenshot.png)
+
 ## 功能
 
 - 一键启动/停止/重启 Web 服务

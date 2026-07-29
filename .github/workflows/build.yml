@@ -56,14 +56,10 @@ jobs:
           path: artifacts
           merge-multiple: false
 
-      - name: Create ZIPs
-        shell: pwsh
-        run: |
-          Compress-Archive -Path artifacts\tiny-web-server-x64\* -DestinationPath tiny-web-server-${{ github.ref_name }}-win64.zip
-          Compress-Archive -Path artifacts\tiny-web-server-Win32\* -DestinationPath tiny-web-server-${{ github.ref_name }}-win32.zip
-
       - uses: softprops/action-gh-release@v2
         with:
-          files: '*.zip'
+          files: |
+            artifacts/tiny-web-server-x64/WindowsProject1-x64.exe
+            artifacts/tiny-web-server-Win32/WindowsProject1-Win32.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
